@@ -109,9 +109,14 @@ static long hw_camera_led_ioctl(struct file *filep ,unsigned int cmd, unsigned l
 				/*these handset use tps61310 as flash*/
 				if( machine_is_msm8x25_U8825()
 				|| machine_is_msm8x25_U8825D()
+                || machine_is_msm8x25_U8833D()
+                || machine_is_msm8x25_U8833()                
 				|| machine_is_msm8x25_C8825D()
 				|| machine_is_msm8x25_C8950D()
 				|| machine_is_msm8x25_U8950D()
+				|| machine_is_msm8x25_U8951()
+                || machine_is_msm8x25_C8813()
+                || machine_is_msm8x25_H881C()
 				||machine_is_msm8x25_U8950())
 				{
 			

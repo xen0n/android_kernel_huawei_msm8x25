@@ -25,6 +25,7 @@
 #include <asm/cacheflush.h>
 #include <asm/io.h>
 #include <asm/exception.h>
+#include <asm/cp15.h>
 
 #include <mach/hardware.h>
 
@@ -37,6 +38,7 @@
 /* merge qcom DEBUG_CODE for RPC crashes */
 #ifdef CONFIG_HUAWEI_RPC_CRASH_DEBUG
 int hw_debug_irq_disabled;
+EXPORT_SYMBOL(hw_debug_irq_disabled);
 #endif
 
 enum {

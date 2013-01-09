@@ -17,6 +17,7 @@
 
 /* #define DEBUG */
 
+#include <linux/module.h>
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/init.h>
@@ -676,13 +677,9 @@ static void qup_i2c_recover_bus_busy(struct qup_i2c_dev *dev)
 	uint32_t status = readl_relaxed(dev->base + QUP_I2C_STATUS);
 	struct gpiomux_setting old_gpio_setting;
 
-	/*
 	if (dev->pdata->msm_i2c_config_gpio)
 		return;
-	*/
-	dev_info(dev->dev, "qup_i2c_recover_bus_busy start!!!\n");
-	dev_info(dev->dev, "QUP_I2C_STATUS:0x%x\n",status);
-	
+
 	if (!(status & (I2C_STATUS_BUS_ACTIVE)) ||
 		(status & (I2C_STATUS_BUS_MASTER)))
 		return;
@@ -1239,9 +1236,9 @@ blsp_core_init:
 		dev->i2c_gpios[i] = res ? res->start : -1;
 	}
 
-	/*ret = qup_i2c_request_gpios(dev);
+	ret = qup_i2c_request_gpios(dev);
 	if (ret)
-		goto err_request_gpio_failed;*/
+		goto err_request_gpio_failed;
 
 	platform_set_drvdata(pdev, dev);
 
@@ -1355,7 +1352,7 @@ err_request_irq_failed:
 err_reset_failed:
 	clk_disable_unprepare(dev->clk);
 	clk_disable_unprepare(dev->pclk);
-//err_request_gpio_failed:
+err_request_gpio_failed:
 err_gsbi_failed:
 	iounmap(dev->base);
 err_ioremap_failed:

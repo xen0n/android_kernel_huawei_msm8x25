@@ -23,14 +23,8 @@
 #include <linux/hardware_self_adapt.h>
 #include <linux/mtk6252_dev.h>
 
-/* 37, 39 can wakeup ap */
-#define MODEM_SOFTWARE_STATE 39  	/* the pin of mtk software state */
-#define GPIO_MODEM_PWRSTAT 128 		/* the pin of mtk modem power state */
-#define AP_RESET_MTK 127						/* the pin to reset mtk modem */
-#define MTK_PWRON 31							/* the pin to power on mtk modem */
-#define DOWNLOAD_EN 37						/* the pin to control mtk modem to download mode */
-#define USB_SEL 32									/* the pin to switch usb to mtk modem */
-
+/* moves some macros of GPIO no. to mtk6252_dev.h */
+#define SIM_SWAP 36									/* the pin to control the sim swap */
 static struct msm_device_mtk6252_data mtk6252_data = {
 	.gpio_pwron		= MTK_PWRON,
 	.gpio_reset			= AP_RESET_MTK,
@@ -38,12 +32,26 @@ static struct msm_device_mtk6252_data mtk6252_data = {
 	.gpio_softwarestate	= MODEM_SOFTWARE_STATE,
 	.gpio_download_en		= DOWNLOAD_EN,
 	.gpio_usb_sel		= USB_SEL,
+    .gpio_sim_swap		= SIM_SWAP,
 };
 
 static struct platform_device msm_device_mtk6252_modem = {
 	.name	= "mtk6252",
 	.dev		= {
 		.platform_data = &mtk6252_data,
+	},
+	.id		= -1,
+};
+
+static struct msm_gpiosleep_data gpiosleep_data = {
+	.host_wake		= GPIO_MTK_WAKE_MSM,
+	.ext_wake		= GPIO_MSM_WAKE_MTK,
+};
+
+static struct platform_device msm_gpiosleep_device = {
+	.name	= "gpiosleep",
+	.dev		= {
+		.platform_data = &gpiosleep_data,
 	},
 	.id		= -1,
 };
@@ -56,6 +64,9 @@ static uint32_t mtk6252_gpio_table[] = {
 	GPIO_CFG(MTK_PWRON,  0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), 
 	GPIO_CFG(DOWNLOAD_EN,  0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), 
 	GPIO_CFG(USB_SEL,  0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), 
+	GPIO_CFG(GPIO_MTK_WAKE_MSM,  0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), 
+	GPIO_CFG(GPIO_MSM_WAKE_MTK,  0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), 
+    /*the sim swap gpio can not be configured in ap,it have been configured in modem base on the sim swap menu*/
 };
 
 /******************************************************************************
@@ -138,6 +149,13 @@ static int  mtk6252_dev_support(void)
 	{
 		printk(KERN_ERR"%s fail\n", __func__);
 	}
+
+    ret = platform_device_register(&msm_gpiosleep_device);
+	if (ret)
+	{
+		printk(KERN_ERR"%s fail\n", __func__);
+	}
+    
 
 	pr_debug("%s exit\n", __func__);
 

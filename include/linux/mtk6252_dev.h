@@ -30,6 +30,11 @@ struct msm_device_mtk6252_data{
 	unsigned gpio_softwarestate;
 	unsigned gpio_download_en;
 	unsigned gpio_usb_sel;
+	unsigned gpio_sim_swap;
+};
+struct msm_gpiosleep_data{
+	unsigned host_wake;
+	unsigned ext_wake;
 };
 
 /* remove unused code */
@@ -46,6 +51,18 @@ struct msm_device_mtk6252_data{
 /* remove unused code */
 
 
+/* moves  macros from mtk6252_dev.c to here 
+ * because poweroff process use one of these marco
+ */
+/* 37, 39 can wakeup ap */
+#define MODEM_SOFTWARE_STATE 39  	/* the pin of mtk software state */
+#define GPIO_MODEM_PWRSTAT 128 		/* the pin of mtk modem power state */
+#define AP_RESET_MTK 127						/* the pin to reset mtk modem */
+#define MTK_PWRON 31							/* the pin to power on mtk modem */
+#define DOWNLOAD_EN 37						/* the pin to control mtk modem to download mode */
+#define USB_SEL 32									/* the pin to switch usb to mtk modem */
+#define GPIO_MTK_WAKE_MSM 38        /* the pin to wake up qualcomm msm chip, input */
+#define GPIO_MSM_WAKE_MTK 35        /* the pin to wake up mtk modem, output */
 int mtk6252_dev_init(void);
 
 #endif /* _MTK6252_DEV_H */

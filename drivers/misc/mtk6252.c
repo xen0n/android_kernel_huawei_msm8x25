@@ -56,6 +56,7 @@ struct mtk6252_driver{
 	int irq_softwarestate;								/*from gpio status*/
 	int irq_enabled; /* if irq enabled*/
 	unsigned gpio_usb_sel;
+  unsigned gpio_sim_swap;
 	
 	atomic_t mtk_modem_softwarestate;	/* store the gpio status's value */
 
@@ -95,6 +96,10 @@ struct mtk6252_driver{
 #define MTK_MODEM_ABNORMAL_HANDLE_TIME (HZ * 5)	/* wakelock 5s to waiting for handling */
 #define STRING_CMP(buf, str) memcmp(buf, str, strlen(str))
 
+#define GPIO_HIGH_LEVEL   1
+#define GPIO_LOW_LEVEL    0
+#define MTK_MODEM_CHECK_GPIO_STATES			10		/* 10ms */
+
 /********************************************************************************
 * data define
 ********************************************************************************/
@@ -116,6 +121,7 @@ static struct  mtk6252_driver *gdriver = NULL;
 ******************************************************************************/
 static int mtk6252_get_softwarestate(void)
 {
+    /*no need to pull low the ap_wakeup_modem pin*/
 	if ((!gdriver) || !(gdriver->gpio_softwarestate)) {
 		printk(KERN_ERR "%s gdriver\n", __func__);
 		return 0;
@@ -137,6 +143,7 @@ static int mtk6252_get_softwarestate(void)
 ******************************************************************************/
 static int mtk6252_get_pwrstat(void)
 {
+    /*no need to pull low the ap_wakeup_modem pin*/
 	if ((!gdriver) || !(gdriver->gpio_pwrstat)) {
 		printk(KERN_ERR "%s gdriver\n", __func__);
 		return 0;
@@ -347,28 +354,7 @@ static void mtk6252_poweron_nocheck(void)
 	mtk6252_poweron_low();
 }
 
-/******************************************************************************
-  Function: 			mtk6252_poweroff_bylongpresspwrkey
-  Description:		long pressing power key, trigger mtk to shutdown
-  Calls:					
-  Data Accessed:	
-  Data Updated:	
-  Input:				
-  Output:				
-  Return:				void
-  Others:				
-******************************************************************************/
-static void mtk6252_poweroff_bylongpresspwrkey(void)
-{
-	if ((!gdriver) || !(gdriver->gpio_pwron)) {
-		printk(KERN_ERR "%s gdriver\n", __func__);
-		return;
-	}
-	/* output high wait for 3s at least*/
-	gpio_set_value(gdriver->gpio_pwron, 1);
-	msleep(MTK_MODEM_LONGPRESS_TIME);  /* long key-press */
-	gpio_set_value(gdriver->gpio_pwron, 0);
-}
+/*remove the mtk6252_poweroff_bylongpresspwrkey function, because of useless*/
 
 /******************************************************************************
   Function: 			mtk6252_poweron_mtkmodem
@@ -408,6 +394,8 @@ static int mtk6252_poweron_mtkmodem(void)
 	return -1;
 }
 
+/*remove the mtk_config_gpio function, because of useless*/
+
 /******************************************************************************
   Function: 			mtk6252_power_off
   Description:		power off mtk
@@ -424,34 +412,32 @@ static void mtk6252_power_off(void)
 	int timeout = MTK_MODEM_POLL_PWROFF_TIMES; /* 2 seconds, temp */
 
 	printk(KERN_INFO"%s enter\n", __func__);
+    /*remove mtk_config_gpio() function, becaue GPIO 35 cause pwrstate incorrect,
+      so set it low before check power states everytime in mtk6252_get_pwrstat()*/
 
 	/* check status of mtk6252 GPIO_MODEM_PWRSTAT, if not shutdown, wait for 5 seconds for at+EPOF*/
 	/* if at failed before, here maybe only waste time */
 	while (timeout--) {
+        /*ap_wakeup_modem pin will affect the status of gpio_pwrstat,
+        so set it to low before read the status of gpio_pwrstat*/
+        gpio_set_value(GPIO_MSM_WAKE_MTK, GPIO_LOW_LEVEL);
 		if (0==mtk6252_get_pwrstat()) {
 			printk(KERN_INFO "%s at+EPOF shut down ok \n", __func__);
-			goto reset;
+			/*remove 1 line.if mtk have been powered off, exit this function,do not need to reset again*/
+			return;
 		}
 		msleep(MTK_MODEM_POLL_PWROFF_INTERVAL);	/* check each 100 ms */
 	}
 
-	/* if not shutdown yet, long press powerkey process */
-	mtk6252_poweroff_bylongpresspwrkey();
-	timeout = MTK_MODEM_POLL_PWROFF_TIMES; /* 5 seconds */
-	while (timeout--) {
-		if (0==mtk6252_get_pwrstat()) {
-			msleep(MTK_MODEM_POLL_PWROFF_INTERVAL);	/* check each 100 ms */
-			printk(KERN_INFO "%s long pwrkey shut down ok \n", __func__);
-			goto reset;
-		}
-		msleep(MTK_MODEM_POLL_PWROFF_INTERVAL);	/* check each 100 ms */
-	}
+    /*remove 12 lines. mtk can not support long press key power off, so remove this operation*/
+	printk(KERN_ERR "%s at+EPOF shut down fail,need to force to shut down \n", __func__);
 
-	printk(KERN_ERR "%s mtk power off reach reset, maybe at and pwrkey-long-press fail \n", __func__);
-
-reset:
-	/* force power off, reset mtk */
+    /* force power off, reset mtk */
 	mtk6252_reset_mtk();
+    /*ap_wakeup_modem pin will affect the status of gpio_pwrstat,
+      so set it to low before read the status of gpio_pwrstat*/
+    gpio_set_value(GPIO_MSM_WAKE_MTK, GPIO_LOW_LEVEL);
+    msleep(MTK_MODEM_CHECK_GPIO_STATES);
 	if (0==mtk6252_get_pwrstat()) 
 		printk(KERN_INFO "%s reset suc \n", __func__);
 	else
@@ -1007,11 +993,154 @@ static ssize_t mtk6252_pwrstat_store(struct device *dev,
 	return -EPERM;
 }
 
+/******************************************************************************
+  Function: 			mtk6252_get_simswap_status
+  Description:		get pin's state
+  Calls:					
+  Data Accessed:	
+  Data Updated:	
+  Input:				
+  Output:				
+  Return:				int: 0--disable, 1--enable
+  Others:				
+******************************************************************************/
+static int mtk6252_get_simswap_status(void)
+{
+  if ((!gdriver) || !(gdriver->gpio_sim_swap)) 
+  {
+    printk(KERN_ERR "%s gdriver\n", __func__);
+    return 0;
+  }
+  /* get state of GPIO_MODEM_DOWNLOAD_EN */
+  return gpio_get_value(gdriver->gpio_sim_swap);
+}
+
+/******************************************************************************
+  Function: 			mtk6252_simswap_show
+  Description:		no permission
+  Calls:					
+  Data Accessed:	
+  Data Updated:	
+  Input:				
+  Output:				
+  Return:				ssize_t
+  Others:				
+******************************************************************************/
+static ssize_t mtk6252_simswap_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	int state = 0;
+	ssize_t ret = 0;
+
+	mutex_lock(&gdriver->dev_lock);
+	state = mtk6252_get_simswap_status();
+	printk(KERN_INFO "%s : %d\n", __func__, state);
+	if (state) 
+		ret = sprintf(buf, "%s\n", "disable");
+	else
+		ret = sprintf(buf, "%s\n", "enable");
+	mutex_unlock(&gdriver->dev_lock);
+	return ret;
+}
+
+/******************************************************************************
+  Function: 			mtk6252_simswap_disable
+  Description:		disable the sim swap
+  Calls:					
+  Data Accessed:	
+  Data Updated:	
+  Input:				
+  Output:				
+  Return:				ssize_t
+  Others:				
+******************************************************************************/
+static void mtk6252_simswap_disable(void)
+{
+  pr_debug("%s enter\n", __func__);
+  if ((!gdriver) || !(gdriver->gpio_sim_swap)) 
+  {
+    printk(KERN_ERR "%s gdriver\n", __func__);
+    return;
+  }
+  printk(KERN_ERR "dis gpio_sim_swap %d \n", gdriver->gpio_sim_swap);
+  /* output high to set to default dual sim connection */
+  gpio_set_value(gdriver->gpio_sim_swap, 1);
+}
+
+/******************************************************************************
+  Function: 			mtk6252_simswap_enable
+  Description:		enable the sim swap
+  Calls:					
+  Data Accessed:	
+  Data Updated:	
+  Input:				
+  Output:				
+  Return:				ssize_t
+  Others:				
+******************************************************************************/
+static void mtk6252_simswap_enable(void)
+{
+  pr_debug("%s enter\n", __func__);
+  if ((!gdriver) || !(gdriver->gpio_sim_swap)) 
+  {
+    printk(KERN_ERR "%s gdriver\n", __func__);
+    return;
+  }
+  
+  printk(KERN_ERR "enable gpio_sim_swap %d \n", gdriver->gpio_sim_swap);
+  /* output low to swap the dual sim */
+  gpio_set_value(gdriver->gpio_sim_swap, 0);
+}
+
+/******************************************************************************
+  Function: 			mtk6252_simswap_store
+  Description:		sim swap operation
+  Calls:					
+  Data Accessed:	
+  Data Updated:	
+  Input:				"enabel" or "disable"
+  Output:				
+  Return:				ssize_t
+  Others:				
+******************************************************************************/
+static ssize_t mtk6252_simswap_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+  mutex_lock(&gdriver->dev_lock);
+  if (!buf || !count) 
+  {
+    printk(KERN_ERR "%s bad args\n", __func__);
+    mutex_unlock(&gdriver->dev_lock);
+    return -EINVAL;
+  }
+
+  printk(KERN_INFO "%s args: %s\n", __func__, buf);
+
+  if (0 == STRING_CMP(buf, "enable")) 
+  {
+    mtk6252_simswap_enable();
+  } 
+  else if (0 == STRING_CMP(buf, "disable")) 
+  {
+    mtk6252_simswap_disable();
+  } 
+  else 
+  {
+    printk(KERN_ERR "%s bad args: %s\n", __func__, buf);
+    mutex_unlock(&gdriver->dev_lock);
+    return -EINVAL;		
+  }
+  mutex_unlock(&gdriver->dev_lock);
+  return count;
+}
+
 DEVICE_ATTR(usb_sel, 0664, mtk6252_usb_sel_show, mtk6252_usb_sel_store);  /* WR attr */
 DEVICE_ATTR(download_mode, 0664, mtk6252_download_mode_show, mtk6252_download_mode_store);  /* WR attr */
 DEVICE_ATTR(onoff,  0664, mtk6252_onoff_show,  mtk6252_onoff_store);     /* WO attr */
 DEVICE_ATTR(softwarestate, 0444, mtk6252_softwarestate_show, mtk6252_softwarestate_store);  /* RO attr */
 DEVICE_ATTR(pwrstat, 0444, mtk6252_pwrstat_show, mtk6252_pwrstat_store);  /* RO attr */
+DEVICE_ATTR(simswap, 0664, mtk6252_simswap_show, mtk6252_simswap_store);  /* WR attr */
 
 /* sysfs's sttrabition array */
 static struct device_attribute *mtk_attrs[] = {
@@ -1020,6 +1149,7 @@ static struct device_attribute *mtk_attrs[] = {
 	&dev_attr_onoff,
 	&dev_attr_softwarestate,
 	&dev_attr_pwrstat,
+    &dev_attr_simswap,
 	NULL,
 };
 
@@ -1098,10 +1228,7 @@ static int mtk6252_can_poweron(void)
 	if(get_charge_flag())
 		return 0; /* not need to start mtk modem */
 #endif
-	/* if power-on reason is rtc-alarm,return 0, else 1 */
-	if(boot_reason&0x02)	/* 0x02 -- RTC alarm, same as PM_PWR_ON_EVENT_RTC in QC modem */
-		return 0;/* not need to start mtk modem */
-
+    /* Delete 3 lines, RTC alarm also need power on mtk modem */
 	return 1;		/* start mtk modem */
 }
 
@@ -1134,11 +1261,8 @@ static int mtk6252_poweron_start(void)
 	return 0;
 #endif
 
-	/* if it is androidboot.swtype=factory and pwrstat=1, do nothing, return */
-	if (mtk6252_get_pwrstat() && is_swtype_factory) {
-		printk(KERN_INFO "%s factory testing, not start mtk \n", __func__);
-		return 0;
-	}
+  /* delete 8 lines code.*/ 
+  /*in factory test, do not need to power on mtk base on pwrstates pin status*/
 
 	/* firstly, check mtk modem's state, if has on, force shutdown */
 	if (mtk6252_get_pwrstat()) {
@@ -1312,7 +1436,8 @@ static long mtk6252_ioctl(struct file *file, unsigned int cmd, unsigned long arg
 	{
 	case MTKMODEM_MONITOR_STATE:
 		/* if mtk modem has shutdown, return 0 */
-		state = mtk6252_get_softwarestate();
+        /*get the mtk power states*/
+        state = mtk6252_get_pwrstat();
 		if (!state) {
 			state = MTKMODEM_MONITOR_STATE_SHUTDOWN;
 			if (copy_to_user(argp, &state, sizeof(state))) {
@@ -1398,6 +1523,7 @@ static int __devinit mtk6252_probe(struct platform_device *pdev)
 		priv->gpio_download_en = pdata->gpio_download_en;
 		priv->irq_softwarestate = gpio_to_irq(pdata->gpio_softwarestate);
 		priv->gpio_usb_sel = pdata->gpio_usb_sel;
+		priv->gpio_sim_swap = pdata->gpio_sim_swap;
 	}
 
 	/* set drv data */

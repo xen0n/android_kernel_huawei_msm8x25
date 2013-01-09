@@ -16,6 +16,7 @@
 
 #define RBUFF_SIZE		4	/* Rx buffer size */
 
+/* huawei liujinggang 20101201 begin */
 /* AK8973 register address */
 #define AKECS_REG_ST			0xC0      /*Status Register*/
 #define AKECS_REG_TMPS			0xC1      /*Temperature sensor data register*/
@@ -69,7 +70,7 @@
 #define ECS_IOCTL_APP_GET_DELAY		ECS_IOCTL_GET_DELAY
 #define ECS_IOCTL_APP_SET_MVFLAG	_IOW(AKMIO, 0x19, short)	/* Set raw magnetic vector flag */
 #define ECS_IOCTL_APP_GET_MVFLAG	_IOR(AKMIO, 0x1A, short)	/* Get raw magnetic vector flag */
-
+/* huawei liujinggang 20101201 end */
 
 #define ECS_IOCTL_APP_GET_LFLAG		_IOR(AKMIO, 0x1B, short)
 #define ECS_IOCTL_APP_SET_LFLAG		_IOW(AKMIO, 0x1C, short)

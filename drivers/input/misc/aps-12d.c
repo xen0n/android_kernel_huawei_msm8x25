@@ -731,11 +731,25 @@ static int aps_12d_probe(
 	
 	/* Command 2 register: 25mA,DC,12bit,Range1 */
 	/*power_down to avoid the iic read error */
-	aps_i2c_reg_write(aps, APS_12D_REG_CMD1, APS_12D_POWER_DOWN);
-	
+	ret = aps_i2c_reg_write(aps, APS_12D_REG_CMD1, APS_12D_POWER_DOWN);
+	if (ret < 0) 
+	{
+		printk(KERN_ERR " APS_12D_POWER_DOWN error!\n");
+		goto err_detect_failed;
+	}
 	/*init the flag,because everlight's 0x06,0x07's register's value low 4 bit is 0*/
 	value_lsb = aps_i2c_reg_read(aps, APS_INT_HT_LSB);
+	if (value_lsb < 0) 
+	{
+		printk(KERN_ERR "APS_INT_HT_LSB error!\n");
+		goto err_detect_failed;
+	}
 	value_msb = aps_i2c_reg_read(aps, APS_INT_HT_MSB);
+	if (value_msb < 0) 
+	{
+		printk(KERN_ERR "APS_INT_HT_MSB error!\n");
+		goto err_detect_failed;
+	}
 	old_lsb = value_lsb;
 	old_msb = value_msb;
 	
@@ -768,12 +782,14 @@ static int aps_12d_probe(
 		if (ret < 0) 
 		{
 			PROXIMITY_DEBUG("APS_TEST error!\n");
+			goto err_detect_failed;
 		}
 		msleep(10);
 		ret = aps_i2c_reg_write(aps, APS_12D_REG_CMD1, APS_12D_POWER_DOWN);
 		if (ret < 0) 
 		{
 			PROXIMITY_DEBUG("APS_12D_POWER_DOWN error!\n");
+			goto err_detect_failed;
 		}
 		msleep(10);
 		ret = aps_i2c_reg_write(aps, APS_12D_REG_CMD2, \
@@ -821,7 +837,7 @@ static int aps_12d_probe(
 			down_range_value[i] = (MAX_ADC_OUTPUT - high_threshold_value_U8661_I[i-1] - (MAX_ADC_OUTPUT / ADJUST_GATE)) / 4 - 650;
 		}
 	}
-	
+	/*zhangtao 20101230 make the changge to config the sensor begin */
 	/*we don't use the input device sensors again */
 	aps->input_dev = input_allocate_device();
 	if (aps->input_dev == NULL) {

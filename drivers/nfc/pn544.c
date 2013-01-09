@@ -84,7 +84,7 @@
  */
 
 #include <linux/uaccess.h>
-#include <mach/gpio.h>
+#include <asm/gpio.h>
 #include <linux/module.h>
 #include <linux/nfc/pn544.h>
 #include <linux/interrupt.h>
@@ -942,7 +942,8 @@ static int __devinit pn544_probe(struct i2c_client *client,
 	} 
 	else
 	{
-		ret = pdata->pn544_clock_output_mode_ctrl();
+		// 1 - Set for clock PMU request mode , 0 - Close for clock PMU request mode
+		ret = pdata->pn544_clock_output_mode_ctrl(1);
 		printk("pn544_clock_output_mode_ctrl:%d \n",ret);
 		if(ret)
 		{		       
@@ -990,6 +991,71 @@ err_info_alloc:
 	return ret;
 }
 
+// New function, Close for clock PMU request mode 
+static int pn544_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+#ifdef CONFIG_ARCH_MSM7X30
+	/* nothing todo */
+#else
+	int ret = 0;
+	
+	PN544_DEBUG("%s:entered\n",__func__);
+	
+	pdata = client->dev.platform_data; 
+	
+	if (!pdata->pn544_clock_output_mode_ctrl) 
+	{ 
+		printk(" <NFC> %s:pn544_clock_output_mode_ctrl  missing\n",__func__); 
+		return -EINVAL; 
+	} 
+	else
+	{
+		// 0 - close for clock pmu request mode, 1 - set for clock pmu request mode
+		ret = pdata->pn544_clock_output_mode_ctrl(0);
+		printk(" <NFC> pn544_clock_output_mode_ctrl: ret = %d  \n",ret );
+		if(ret)
+		{		       
+			return -EINVAL; 
+		}
+	}
+#endif
+
+	return 0;
+}
+
+
+// New function, Set for clock PMU request mode 
+static int pn544_resume(struct i2c_client *client)
+{
+#ifdef CONFIG_ARCH_MSM7X30
+	/* nothing todo */
+#else
+	int ret = 0;
+
+	PN544_DEBUG("%s:entered\n",__func__);
+
+	pdata = client->dev.platform_data; 
+
+	if (!pdata->pn544_clock_output_mode_ctrl) 
+	{ 
+		printk(" <NFC> %s:pn544_clock_output_mode_ctrl  missing\n",__func__); 
+		return -EINVAL; 
+	} 
+	else
+	{
+		// 0 - close for clock pmu request mode, 1 - set for clock pmu request mode
+		ret = pdata->pn544_clock_output_mode_ctrl(1);
+		printk(" <NFC> pn544_clock_output_mode_ctrl: ret = %d  \n",ret );
+		if(ret)
+		{		       
+			return -EINVAL; 
+		}
+	}
+#endif
+	
+	return 0;
+}
+
 static __devexit int pn544_remove(struct i2c_client *client)
 {
 	misc_deregister(&pn544_info->miscdev);
@@ -1010,6 +1076,8 @@ static struct i2c_driver pn544_driver =
 	},
 	.probe = pn544_probe,
 	.id_table = pn544_id_table,
+	.suspend = pn544_suspend,
+	.resume = pn544_resume,
 	.remove = __devexit_p(pn544_remove),
 };
 

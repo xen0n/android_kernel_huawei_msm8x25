@@ -48,6 +48,9 @@
 #include "smd_private.h"
 #endif
 
+/* power key detect solution for ANR */
+#include <linux/sysrq.h>
+
 #define DRIVER_NAME	"msm-handset"
 
 #define HS_SERVER_PROG 0x30000062
@@ -765,6 +768,87 @@ static void update_state(void)
 	switch_set_state(&hs->sdev, state);
 }
 
+/* power key detect solution for ANR */
+#ifdef CONFIG_HUAWEI_FEATURE_POWER_KEY
+#define POWER_KEY_TIMEOUT 5
+struct timer_list power_key_detect_timer;
+static int g_power_key_detect=0;/*disable power key detect solution*/
+static int mod_timer_flags=0;/*avoid timer pending*/
+
+static ssize_t
+show_power_key_detect(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", g_power_key_detect);
+}
+
+static ssize_t
+set_power_key_detect(struct device *dev,struct device_attribute *attr,const char *buf, size_t count)
+{
+
+	unsigned long val;
+	int error;
+	
+	error = strict_strtoul(buf, 10, &val);
+	if (error)
+		return error;
+	
+	g_power_key_detect=val;
+	return count;
+}
+
+static DEVICE_ATTR(power_key_detect, 0644, show_power_key_detect, set_power_key_detect);
+
+
+static void exception_power_key_timeout(unsigned long data)
+{	
+	__handle_sysrq('w', false);
+	BUG_ON(1);
+}
+
+void del_power_key_timer(void)
+{	
+	/*if timer add,del timer*/
+	if(mod_timer_flags)
+	{
+		del_timer(&power_key_detect_timer);
+		mod_timer_flags=0;
+	}
+}
+EXPORT_SYMBOL(del_power_key_timer);
+
+static void init_power_key_dump(void)
+{
+	init_timer(&power_key_detect_timer);
+	power_key_detect_timer.function = exception_power_key_timeout;
+	power_key_detect_timer.data = 0;
+}
+
+static int bootmode=0;
+int __init get_bootmode(char *s)
+{
+	if (!strcmp(s, "recovery"))
+		bootmode = 1;
+	return 0;
+}
+__setup("androidboot.mode=", get_bootmode);
+
+static void power_key_dump(void)
+{
+	/*bootmode isn't recovery mode and power detect enable ,mod_timer_flag avoid timer pending*/
+   	if(bootmode !=1 && g_power_key_detect==1 && mod_timer_flags == 0)		
+   	{
+		mod_timer_flags=1;
+        mod_timer(&power_key_detect_timer,jiffies + HZ*POWER_KEY_TIMEOUT);
+   	}
+	else
+		return;
+}
+#else
+void del_power_key_timer(void){}
+EXPORT_SYMBOL(del_power_key_timer);
+static void power_key_dump(void){}
+#endif
+
 /*
  * tuple format: (key_code, key_param)
  *
@@ -796,6 +880,9 @@ static void report_hs_key(uint32_t key_code, uint32_t key_parm)
 
 	switch (key) {
 	case KEY_POWER:
+		/* power key detect solution for ANR */
+		del_power_key_timer();
+
 		break;
 	case KEY_END:
    /* add log,print key code and UTC */
@@ -806,6 +893,10 @@ static void report_hs_key(uint32_t key_code, uint32_t key_parm)
     #endif
    	#ifdef CONFIG_HUAWEI_KERNEL
 		input_report_key(hs->ipdev, KEY_POWER, (key_code != HS_REL_K));
+		/* power key detect solution for ANR */
+		if(key_code == HS_REL_K)
+			power_key_dump();
+
    	#else
    		input_report_key(hs->ipdev, key, (key_code != HS_REL_K));
    	#endif
@@ -1254,6 +1345,14 @@ static int __devinit hs_probe(struct platform_device *pdev)
 		goto err_hs_rpc_init;
 	}
 
+/* power key detect solution for ANR */
+#ifdef CONFIG_HUAWEI_FEATURE_POWER_KEY
+	/*create /sys/devices/platform/msm-handset/power_key_detect*/
+	if (device_create_file(&pdev->dev, &dev_attr_power_key_detect))
+		printk(KERN_INFO "power_key_detect device file create fail !\n");
+	init_power_key_dump();
+#endif
+
 	return 0;
 
 err_hs_rpc_init:
@@ -1290,11 +1389,11 @@ static struct platform_driver hs_driver = {
 
 static int __init hs_init(void)
 {
-    
+    /* <emmc_oeminfo duangan 2010-4-25 begin */
 	#ifdef CONFIG_HUAWEI_FEATURE_OEMINFO
     platform_driver_register(&rmt_oeminfo_driver);
 	#endif
-    
+    /* emmc_oeminfo duangan 2010-4-25 end> */
     
 	return platform_driver_register(&hs_driver);
 }

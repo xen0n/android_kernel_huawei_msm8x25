@@ -70,6 +70,11 @@
 #define BATTERY_DEREGISTER_CLIENT_PROC			5
 #define BATTERY_READ_MV_PROC 				12
 #define BATTERY_ENABLE_DISABLE_FILTER_PROC 		14
+#ifdef CONFIG_HUAWEI_KERNEL
+#define BATTERY_READ_ID_PROC  124 
+#define CHARGE_LIMIT_CURRENT_PROC 125 //rpc for limit current
+#define BATTERY_GET_RESISTANCE_ID_PROC 127
+#endif
 #ifdef CONFIG_HUAWEI_KERNEL 
 /* delete for the 7x27a and  8x55  use the same code in  hardware_self_adapt.h   */
 
@@ -82,6 +87,11 @@
 /* the temp reported from modem had been multiplied by 10*/
 #define TEMP_MULTIPLE   10
 #define HEALTH_VOLT_MAX 4250
+#ifdef CONFIG_HUAWEI_KERNEL
+#define HEALTH_HIGH_VOLT_MAX 4400 //max vlotage
+#define BATTERY_HIGH_HIGH    4450 //design max voltage
+#define CHG_LIMIT_VOLT 4350
+#endif
 #define NO_BATT_TEMPERATURE (-30)
 
 #define VBATT_FILTER			2
@@ -125,6 +135,9 @@ module_param_named(debug_mask, batt_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
 /*the report threshold in mV*/
 #define SUSPEND_DELTA_LEVEL 20
 static int msm_batt_set_delta(u32 batt_delta);
+#ifdef CONFIG_HUAWEI_KERNEL 
+static int msm_batt_set_chg_limit_current(u32 chg_limit_curent);
+#endif
 /*get battery level rpc function id*/
 /*  delete for the 7x27a and  8x55  use the same code in  hardware_self_adapt.h  */
 /*delete some lines*/
@@ -136,6 +149,7 @@ enum {
 	BATTERY_INTERROGATION_SUCCESSFUL = BATTERY_REGISTRATION_SUCCESSFUL,
 #ifdef CONFIG_HUAWEI_KERNEL 
     BATTERY_SETDELTA_SUCCESSFUL = BATTERY_REGISTRATION_SUCCESSFUL,
+    BATTERY_LIMITCURRENT_SUCCESSFUL = BATTERY_REGISTRATION_SUCCESSFUL,
 #endif
     BATTERY_CLIENT_TABLE_FULL = 1,
 	BATTERY_REG_PARAMS_WRONG = 2,
@@ -301,7 +315,9 @@ struct msm_battery_info {
 	wait_queue_head_t wait_q;
 
 	u32 vbatt_modify_reply_avail;
-
+#ifdef CONFIG_HUAWEI_KERNEL 
+	u32 chg_lim_current ;
+#endif
 	struct early_suspend early_suspend;
 };
 
@@ -318,6 +334,9 @@ static struct msm_battery_info msm_batt_info = {
 	.batt_valid  = 1,
 	.battery_temp = 23,
 	.vbatt_modify_reply_avail = 0,
+#ifdef CONFIG_HUAWEI_KERNEL 
+	.chg_lim_current = 1250 ,
+#endif
 };
 
 static enum power_supply_property msm_power_props[] = {
@@ -455,7 +474,48 @@ static int msm_batt_get_level_ret_func(struct msm_rpc_client *batt_client,
 
 	return 0;
 }
+#ifdef CONFIG_HUAWEI_KERNEL
+static int atoi(const char *name)
+{
+	int val = 0;
+	for (;; name++) {
+		switch (*name) {
+		case '0' ... '9':
+			val = 10*val+(*name-'0');
+			break;
+		default:
+			return val;
+		}
+	}
+}
 
+static int chg_limit_current_show_attrs(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+    int len = 0;
+    len = sprintf(buf, "%d\n", msm_batt_info.chg_lim_current);
+    return len;
+}
+/*node for charge limit current*/
+static ssize_t chg_limit_current_store_attrs(struct device *dev,
+					      struct device_attribute *attr,
+					      const char *buf, size_t count)
+{
+	msm_batt_info.chg_lim_current = (u32)atoi(buf);
+	msm_batt_set_chg_limit_current(msm_batt_info.chg_lim_current);
+	printk("chg_lim_current = %d\n",msm_batt_info.chg_lim_current);
+	return count;
+}
+static DEVICE_ATTR(chg_limit_current, S_IRUSR|S_IWUSR, chg_limit_current_show_attrs, chg_limit_current_store_attrs);
+static struct attribute *battery_attributes[] = {
+	&dev_attr_chg_limit_current.attr,
+	NULL,
+};
+static struct attribute_group battery_attr_group = {
+	.attrs = battery_attributes,
+};
+#endif
 static u32 msm_batt_get_battery_level(void)
 {
 	int rc;
@@ -572,7 +632,20 @@ static int msm_batt_get_volt_ret_func(struct msm_rpc_client *batt_client,
 
 	return 0;
 }
-
+#ifdef CONFIG_HUAWEI_KERNEL
+struct msm_batt_get_batt_id_data {
+	u32 batt_id ;
+};
+static int msm_batt_get_batt_id_func(struct msm_rpc_client *batt_client,
+				       void *buf, void *data)
+{
+	struct msm_batt_get_batt_id_data *data_ptr, *buf_ptr;
+	data_ptr = (struct msm_batt_get_batt_id_data *)data;
+	buf_ptr = (struct msm_batt_get_batt_id_data *)buf;
+	data_ptr->batt_id = be32_to_cpu(buf_ptr->batt_id);
+	return 0;
+}
+#endif
 static u32 msm_batt_get_vbatt_voltage(void)
 {
 	int rc;
@@ -592,7 +665,27 @@ static u32 msm_batt_get_vbatt_voltage(void)
 
 	return rep.battery_voltage;
 }
+/*function is get battery limit voltage */
+#ifdef CONFIG_HUAWEI_KERNEL
+static u32 msm_batt_get_batt_id(void)
+{
+	int rc;
+	struct msm_batt_get_batt_id_data rep;
 
+	rc = msm_rpc_client_req(msm_batt_info.batt_client,
+			BATTERY_READ_ID_PROC,
+			NULL, NULL,
+			msm_batt_get_batt_id_func, &rep,
+			msecs_to_jiffies(BATT_RPC_TIMEOUT));
+
+	if (rc < 0) {
+		pr_err("%s: FAIL: vbatt get volt. rc=%d\n", __func__, rc);
+		return 0;
+	}
+	printk("batt_id_lim_volt = %d\n",rep.batt_id);
+	return rep.batt_id;
+}
+#endif
 /* the RPC function to get the charge state from modem side */
 struct msm_batt_get_charge_state_ret_data {
 	u32 chg_state;
@@ -686,7 +779,17 @@ static void msm_batt_update_psy_status(void)
 	struct	power_supply	*supp;
 
     u32	battery_capacity;
- 
+    u32 battery_max_voltage = 0;
+	if(CHG_LIMIT_VOLT==msm_batt_get_batt_id())
+	{
+		battery_max_voltage = HEALTH_HIGH_VOLT_MAX ;
+		msm_batt_info.voltage_max_design = BATTERY_HIGH_HIGH;
+	}
+	else
+	{
+		battery_max_voltage = HEALTH_VOLT_MAX ;
+		msm_batt_info.voltage_max_design = BATTERY_HIGH;
+	}
 	if (msm_batt_get_batt_chg_status())
 		return;
 
@@ -906,7 +1009,7 @@ static void msm_batt_update_psy_status(void)
     {
         msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_COLD;        
     }
-    else if(battery_voltage > HEALTH_VOLT_MAX)
+	else if(battery_voltage > battery_max_voltage)
     {
         msm_batt_info.batt_health = POWER_SUPPLY_HEALTH_OVERVOLTAGE; 
     }
@@ -1525,7 +1628,119 @@ static int msm_batt_set_delta(u32 batt_delta)
 
 #endif
 #endif  /* CONFIG_BATTERY_MSM_FAKE */
+/*rpc for charge limit current*/
+#ifdef CONFIG_HUAWEI_KERNEL 
+struct msm_set_chg_req {
+	u32 chg_limit_curent;
+};
 
+struct msm_set_chg_rep {
+	u32 chg_result;
+};
+
+static int msm_set_chg_arg_func(struct msm_rpc_client *batt_client,
+				       void *buf, void *data)
+{
+	struct msm_set_chg_req *chg_current_req =
+		(struct  msm_set_chg_req *)data;
+	u32 *req = (u32 *)buf;
+	int size = 0;
+
+	*req = cpu_to_be32(chg_current_req->chg_limit_curent);
+	size += sizeof(u32);
+
+	return size;
+}
+
+static int msm_set_chg_ret_func(struct msm_rpc_client *batt_client,
+				       void *buf, void *data)
+{
+	struct msm_set_chg_rep *data_ptr, *buf_ptr;
+
+	data_ptr = (struct msm_set_chg_rep *)data;
+	buf_ptr = (struct msm_set_chg_rep *)buf;
+
+	data_ptr->chg_result = be32_to_cpu(buf_ptr->chg_result);
+
+	return 0;
+}
+
+/* RPC call-back function for set chg limit current */
+
+static int msm_batt_set_chg_limit_current(u32 chg_limit_curent)
+{
+	int rc;
+	struct msm_set_chg_req req;
+	struct msm_set_chg_rep rep;
+
+	req.chg_limit_curent = chg_limit_curent;
+
+	rc = msm_rpc_client_req(msm_batt_info.batt_client,
+			CHARGE_LIMIT_CURRENT_PROC,
+			msm_set_chg_arg_func, &req,
+			msm_set_chg_ret_func, &rep,
+			msecs_to_jiffies(BATT_RPC_TIMEOUT));
+
+	if (rc < 0) {
+		pr_err("%s: FAIL: set chg limit current. rc=%d\n", __func__, rc);
+		return rc;
+	}
+
+	if (rep.chg_result != BATTERY_LIMITCURRENT_SUCCESSFUL) {
+		pr_err("%s: set chg limit current. error=%d",
+		       __func__, rep.chg_result);
+		return -EIO;
+	}
+
+	return 0;
+}
+#endif
+/* rpc data struct for battery manufacturer id */
+struct msm_batt_resistance_id_data {
+	u32 resistance_id;
+};
+
+static int msm_batt_resistance_id_ret_func(struct msm_rpc_client *batt_client,
+				       void *buf, void *data)
+{
+	struct msm_batt_resistance_id_data *data_ptr, *buf_ptr;
+
+	data_ptr = (struct msm_batt_resistance_id_data *)data;
+	buf_ptr = (struct msm_batt_resistance_id_data *)buf;
+
+	data_ptr->resistance_id = be32_to_cpu(buf_ptr->resistance_id);
+
+	return 0;
+}
+
+static u32 msm_batt_manufacturer_id(void)
+{
+	int rc;
+
+	struct msm_batt_resistance_id_data rep;
+
+	rc = msm_rpc_client_req(msm_batt_info.batt_client,
+			BATTERY_GET_RESISTANCE_ID_PROC,
+			NULL, NULL,
+			msm_batt_resistance_id_ret_func, &rep,
+			msecs_to_jiffies(BATT_RPC_TIMEOUT));
+
+	if (rc < 0) {
+		pr_err("%s: FAIL: vbatt get manufacturer resistance id. rc=%d\n", __func__, rc);
+		return 0;
+	}
+
+	return rep.resistance_id;
+}
+
+/* return -1 means the battery no manufacturer id info*/
+#define BATTERY_RESISTANCE_MV_DEFAULT 0xFF
+hw_battery_id_mv get_battery_resistance_id(void)
+{
+    hw_battery_id_mv batt_id = -1;
+    batt_id = (hw_battery_id_mv)msm_batt_manufacturer_id();
+    return batt_id;
+}
 static int msm_batt_cleanup(void)
 {
 	int rc = 0;
@@ -1812,7 +2027,16 @@ static int __devinit msm_batt_probe(struct platform_device *pdev)
 		msm_batt_cleanup();
 		return rc;
 	}
-
+#ifdef CONFIG_HUAWEI_KERNEL
+	rc=sysfs_create_group(&pdev->dev.kobj, &battery_attr_group);
+	if (rc < 0) {
+		dev_err(&pdev->dev,
+			"%s: power_chg_limit current failed rc = %d\n",
+			__func__,rc);
+		msm_batt_cleanup();	
+		return rc;
+	}
+#endif
 #ifdef CONFIG_HUAWEI_KERNEL 
     rc =  msm_batt_set_delta(VBATT_DELTA);
 	if (rc < 0) {
@@ -1839,7 +2063,9 @@ static int __devexit msm_batt_remove(struct platform_device *pdev)
 {
 	int rc;
 	rc = msm_batt_cleanup();
-
+#ifdef CONFIG_HUAWEI_KERNEL
+	sysfs_remove_group(&pdev->dev.kobj, &battery_attr_group);
+#endif
 	if (rc < 0) {
 		dev_err(&pdev->dev,
 			"%s: msm_batt_cleanup  failed rc=%d\n", __func__, rc);

@@ -258,7 +258,7 @@ static int tvenc_on(struct platform_device *pdev)
 	}
 /* Enable TV_OUT ctl */
 #ifdef CONFIG_HUAWEI_KERNEL
-
+/* U8800 have tv_out function,only */
 	if(machine_is_msm7x30_u8800() || machine_is_msm7x30_u8800_51() || machine_is_msm8255_u8800_pro()) 
 	{
 		gpio_tlmm_config(GPIO_CFG(33, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),GPIO_CFG_ENABLE);

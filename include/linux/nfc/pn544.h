@@ -174,7 +174,7 @@ struct pn544_nfc_platform_data {
 	/* no other func */
 #else	
     int (*pn544_clock_output_ctrl)(int);
-    int (*pn544_clock_output_mode_ctrl)(void);
+    int (*pn544_clock_output_mode_ctrl)(int);
 #endif	
 };
 

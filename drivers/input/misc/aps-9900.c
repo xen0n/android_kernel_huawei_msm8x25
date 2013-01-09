@@ -94,6 +94,7 @@ static int origin_prox = 822;
 static int min_proximity_value;
 static int light_device_minor = 0;
 static int proximity_device_minor = 0;
+/*return the modify*/
 static struct wake_lock proximity_wake_lock;
 static atomic_t l_flag;
 static atomic_t p_flag;
@@ -197,10 +198,9 @@ static int aps_9900_open(struct inode *inode, struct file *file)
     /* when the device is open use this if light open report -1 when proximity open then lock it*/
     if( light_device_minor == iminor(inode) ){
         PROXIMITY_DEBUG("%s:light sensor open\n", __func__);
-		/*it's not necessary to set this flag everytime*/
+        /*it's not necessary to set this flag everytime*/
         /*aps_first_read = 1;*/
     }
-
     if( proximity_device_minor == iminor(inode) ){
         PROXIMITY_DEBUG("%s:proximity_device_minor == iminor(inode)\n", __func__);
         wake_lock( &proximity_wake_lock);
@@ -208,7 +208,6 @@ static int aps_9900_open(struct inode *inode, struct file *file)
         input_report_abs(this_aps_data->input_dev, ABS_DISTANCE, 1);
         input_sync(this_aps_data->input_dev);
     }
-    APS9900_DBG(KERN_ERR "%s:flag is %d\n", __func__,aps_open_flag);
     /* when open_count come to max, the aps device reset the value of min_proximity_value*/
     if( OPEN_COUNT_MAX == open_count )
     {
@@ -216,6 +215,7 @@ static int aps_9900_open(struct inode *inode, struct file *file)
         open_count = 0;
     }
     open_count ++;
+    APS9900_DBG(KERN_ERR "%s:flag is %d,open_count = %d\n", __func__,aps_open_flag,open_count);
     if(p_h != get_9900_register(this_aps_data, APDS9900_PIHTL_REG, 1) \
      ||p_l != get_9900_register(this_aps_data, APDS9900_PILTL_REG, 1) )
     {
@@ -232,8 +232,8 @@ static int aps_9900_open(struct inode *inode, struct file *file)
         u8 value_reg0;
         int ret;
         
-		/*set bit 0 of reg 0 ==1*/
-		value_reg0 = reg0_value;
+        /*set bit 0 of reg 0 ==1*/
+        value_reg0 = reg0_value;
         /* if power on ,will not set PON=1 again */
         if (APDS9900_POWER_OFF == (value_reg0 & APDS9900_POWER_MASK))
         {
@@ -243,10 +243,10 @@ static int aps_9900_open(struct inode *inode, struct file *file)
             {
                 printk(KERN_ERR "%s:set_9900_register is error(%d)!", __func__, ret);
             }
-		     else
-		     {
-				reg0_value = value_reg0;
-			 }
+            else
+            {
+                reg0_value = value_reg0;
+            }
         }
         if (this_aps_data->client->irq)   
         {
@@ -285,17 +285,17 @@ static int aps_9900_release(struct inode *inode, struct file *file)
     {
         int value_reg0,ret;
         
-		/*set bit 0 of reg 0 ==0*/
-		value_reg0 = reg0_value & APDS9900_REG0_POWER_OFF;
+        /*set bit 0 of reg 0 ==0*/
+        value_reg0 = reg0_value & APDS9900_REG0_POWER_OFF;
         ret = set_9900_register(this_aps_data, APDS9900_ENABLE_REG, value_reg0, 0);
         if (ret)
         {
             printk(KERN_ERR "%s:set_9900_register is error(%d)!", __func__, ret);
         }
-		else
-		{
-			reg0_value = value_reg0;
-		}
+        else
+        {
+            reg0_value = value_reg0;
+        }
         if (this_aps_data->client->irq) 
         {
             disable_irq(this_aps_data->client->irq);
@@ -841,11 +841,63 @@ static int aps_9900_probe(
     /* add U8825 & 8825D proximit and ambient  parameters */
     else if( machine_is_msm8x25_U8825()
         || machine_is_msm8x25_U8825D()
+        /*delete G510 Y300*/
         || machine_is_msm8x25_C8825D())
     {
         apds_9900_pwindows_value = CU8825_WINDOW;
         apds_9900_pwave_value = CU8825_WAVE; 
         p = &lsensor_adc_table_cu8825[0];
+    }
+    else if( machine_is_msm8x25_C8812P() )
+    {
+        apds_9900_pwindows_value = C8812E_WINDOW;
+        apds_9900_pwave_value = C8812E_WAVE;
+        p = &lsensor_adc_table_c8812e[0];
+    }
+    /* add U8950 & C8950 proximit and ambient parameters */
+    else if( machine_is_msm8x25_C8950D()
+        || machine_is_msm8x25_U8950D()
+        || machine_is_msm8x25_U8950() )
+    {
+        apds_9900_pwindows_value = CU8950_WINDOW;
+        apds_9900_pwave_value = CU8950_WAVE; 
+        p = &lsensor_adc_table_cu8950[0];
+    }
+    /*G510C*/
+    else if( machine_is_msm8x25_C8813() )
+    {
+        apds_9900_pwindows_value = G510C_WINDOW;
+        apds_9900_pwave_value = G510C_WAVE; 
+        p = &lsensor_adc_table_g510c[0];	
+    }
+    /*G510*/
+    else if( machine_is_msm8x25_U8951D()
+        || machine_is_msm8x25_U8951()
+        /* move C8813 to above */
+        )
+    {
+        apds_9900_pwindows_value = G510_WINDOW;
+        apds_9900_pwave_value = G510_WAVE; 
+        p = &lsensor_adc_table_g510[0];	
+        aps9900_init_regdata[PPCOUNT_REG_INDEX].data = 0x0C;
+    }
+    /*Y300*/
+    else if( machine_is_msm8x25_C8833D()
+        || machine_is_msm8x25_U8833D()
+        || machine_is_msm8x25_U8833() )
+    {
+        apds_9900_pwindows_value = Y300_WINDOW;
+        apds_9900_pwave_value = Y300_WAVE; 
+        p = &lsensor_adc_table_y300[0];
+        aps9900_init_regdata[PPCOUNT_REG_INDEX].data = 0x0A;
+    }
+    else if( machine_is_msm7x27a_H867G() 
+          || machine_is_msm7x27a_H868C())
+    {
+        apds_9900_pwindows_value = H867G_WINDOW;
+        apds_9900_pwave_value = H867G_WAVE;
+        aps9900_init_regdata[4].data = 8; //to increase the sensor sensitivity
+        p = &lsensor_adc_table_H867G[0];
     }
     else
     {
@@ -911,7 +963,7 @@ static int aps_9900_probe(
                 goto err_gpio_config_failed;
             }
         }
-        
+        /*DELETE*/
         if (request_irq(client->irq, aps_irq_handler,IRQF_TRIGGER_LOW, client->name, aps) >= 0) 
         {
             PROXIMITY_DEBUG("Received IRQ!\n");
@@ -997,7 +1049,6 @@ static int aps_9900_probe(
     }
 
     wake_lock_init(&proximity_wake_lock, WAKE_LOCK_SUSPEND, "proximity");
-
     aps_wq = create_singlethread_workqueue("aps_wq");
 
     if (!aps_wq) 
@@ -1082,7 +1133,7 @@ static int aps_9900_suspend(struct i2c_client *client, pm_message_t mesg)
     ret = cancel_work_sync(&aps->work);
 
     /* set [PON] bit =0 ,meaning disables the oscillator */
-	/*reconfig reg before supspend*/
+    /*reconfig reg before supspend*/
     ret = set_9900_register(aps, APDS9900_ENABLE_REG,  APDS9900_POWER_OFF,0);
     if (ret)
     {

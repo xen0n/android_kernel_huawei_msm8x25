@@ -75,18 +75,18 @@ static struct msm_camera_i2c_reg_conf s5k3h2_prev_settings[] = {
 	{0x301D, 0x80},
 	{0x301A, 0x77},
 
-
+/*zhanglijun  add begin*/
 	   /* PLL */
-	{0x0305, 0x04},/*PRE_PLL_CLK_DIV*/
-	{0x0306, 0x00},/*PLL_MULTIPLIER*/
-	{0x0307, 0x6C},/*PLL_MULTIPLIER*/
-	{0x0303, 0x01},/*VT_SYS_CLK_DIV*/
-	{0x0301, 0x05},/*VT_PIX_CLK_DIV*/
-	{0x030B, 0x01},/*OP_SYS_CLK_DIV*/
-	{0x0309, 0x05},/*OP_PIX_CLK_DIV*/
-	{0x30CC, 0xB0},/*DPHY_BAND_CTRL*/
-	{0x31A1, 0x56},/*BINNING*/
-
+    {0x0305, 0x08},/*PRE_PLL_CLK_DIV*/
+    {0x0306, 0x00},/*PLL_MULTIPLIER*/
+    {0x0307, 0x6C},/*PLL_MULTIPLIER*/
+    {0x0303, 0x01},/*VT_SYS_CLK_DIV*/
+    {0x0301, 0x05},/*VT_PIX_CLK_DIV*/
+    {0x030B, 0x01},/*OP_SYS_CLK_DIV*/
+    {0x0309, 0x05},/*OP_PIX_CLK_DIV*/
+    {0x30CC, 0xB0},/*DPHY_BAND_CTRL*/
+    {0x31A1, 0x56},/*BINNING*/
+/*zhanglijun  add end*/
 };
 
 static struct msm_camera_i2c_reg_conf s5k3h2_snap_settings[] = {
@@ -127,18 +127,18 @@ static struct msm_camera_i2c_reg_conf s5k3h2_snap_settings[] = {
 	{0x301D, 0x00},
 	{0x301A, 0x77},
 
-
+/*zhanglijun  add begin*/
 	   /* PLL */
-	{0x0305, 0x04},/*PRE_PLL_CLK_DIV*/
-	{0x0306, 0x00},/*PLL_MULTIPLIER*/
-	{0x0307, 0x6C},/*PLL_MULTIPLIER*/
-	{0x0303, 0x01},/*VT_SYS_CLK_DIV*/
-	{0x0301, 0x05},/*VT_PIX_CLK_DIV*/
-	{0x030B, 0x01},/*OP_SYS_CLK_DIV*/
-	{0x0309, 0x05},/*OP_PIX_CLK_DIV*/
-	{0x30CC, 0xB0},/*DPHY_BAND_CTRL*/
-	{0x31A1, 0x56},/*BINNING*/
-
+    {0x0305, 0x08},/*PRE_PLL_CLK_DIV*/
+    {0x0306, 0x00},/*PLL_MULTIPLIER*/
+    {0x0307, 0x6C},/*PLL_MULTIPLIER*/
+    {0x0303, 0x01},/*VT_SYS_CLK_DIV*/
+    {0x0301, 0x05},/*VT_PIX_CLK_DIV*/
+    {0x030B, 0x01},/*OP_SYS_CLK_DIV*/
+    {0x0309, 0x05},/*OP_PIX_CLK_DIV*/
+    {0x30CC, 0xB0},/*DPHY_BAND_CTRL*/
+    {0x31A1, 0x56},/*BINNING*/
+/*zhanglijun  add end*/
 };
 
 
@@ -193,17 +193,16 @@ static struct msm_camera_i2c_reg_conf s5k3h2_1080p_settings[] = {
 //{0x0100 ,0x01},		
 
 			//PLL³]©w		EXCLK 24Mhz, vt_pix_clk_freq_mhz=182.4Mhz,op_sys_clk_freq_mhz=912Mhz					
-			//Address	Data	Comment					
-{0x0305 ,0x04},		//pre_pll_clk_div = 4                                                                                                          
-{0x0306 ,0x00},		//pll_multiplier                                                                                                               
-{0x0307 ,0x98},		//pll_multiplier  = 152                                                                                                      
-{0x0303 ,0x01},		//vt_sys_clk_div = 1                                                                                        
-{0x0301 ,0x05},		//vt_pix_clk_div = 5                                                                                                           
-{0x030B ,0x01},		//op_sys_clk_div = 1                                                                                                           
-{0x0309 ,0x05},		//op_pix_clk_div = 5                                                                                                           
-{0x30CC ,0xe0},		//DPHY_band_ctrl 870 MHz ~ 950 MHz                                                                                        
+			//Address	Data	Comment			
+{0x0305 ,0x08}, //pre_pll_clk_div = 4 
+{0x0306 ,0x00}, //pll_multiplier
+{0x0307 ,0x98}, //pll_multiplier = 152
+{0x0303 ,0x01}, //vt_sys_clk_div = 1
+{0x0301 ,0x05}, //vt_pix_clk_div = 5
+{0x030B ,0x01}, //op_sys_clk_div = 1
+{0x0309 ,0x05}, //op_pix_clk_div = 5
+{0x30CC ,0xe0}, //DPHY_band_ctrl 870 MHz ~ 950 MHz
 {0x31A1 ,0x58},
-
 };
 
 
@@ -287,8 +286,8 @@ static struct msm_camera_i2c_reg_conf s5k3h2_recommend_settings[] = {
 {0x31A7 ,0x0F},		//110323 update
 
 			//Flip/Mirror Setting		                 
-			//Address	Data	Comment                          
-{0x0101 ,0x03},		//Flip/Mirror ON 0x03      OFF 0x00
+			//Address	Data	Comment      
+{0x0101 ,0x00},		//Flip/Mirror ON 0x03      OFF 0x00
 						
 			//MIPI Setting		                         
 			//Address	Data	Comment                          
@@ -299,15 +298,14 @@ static struct msm_camera_i2c_reg_conf s5k3h2_recommend_settings[] = {
 {0x309A ,0x01},				
 {0x310D ,0xC6},				
 {0x30c3 ,0x40},				
-{0x30BB ,0x02},				
-{0x30BC ,0x38},		//According to MCLK, these registers should be changed.
-{0x30BD ,0x40},			
-{0x3110 ,0x70},			
-{0x3111 ,0x80},			
-{0x3112 ,0x7B},			
-{0x3113 ,0xC0},			
-{0x30C7 ,0x1A},			
-						
+{0x30BB ,0x02},		
+{0x30BC ,0x70},		//According to MCLK, these registers should be changed.
+{0x30BD ,0x80},			
+{0x3110 ,0xE0},			
+{0x3111 ,0x00},			
+{0x3112 ,0xF7},			
+{0x3113 ,0x80},			
+{0x30C7 ,0x2A},			
 						
 
 
@@ -664,8 +662,9 @@ static struct msm_sensor_ctrl_t s5k3h2_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(s5k3h2_subdev_info),
 	.sensor_v4l2_subdev_ops = &s5k3h2_subdev_ops,
 	.func_tbl = &s5k3h2_func_tbl,
-	.clk_rate = MSM_SENSOR_MCLK_24HZ,
-	.sensor_name = "23060080FA-SAM-L",
+   	.clk_rate = MSM_SENSOR_MCLK_48HZ,
+	.sensor_name = "23060093FA-SAM-L",
+
 };
 
 module_init(s5k3h2y_liteon_init_module);

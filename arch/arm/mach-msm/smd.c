@@ -40,10 +40,13 @@
 #include <mach/system.h>
 #include <mach/subsystem_notif.h>
 #include <mach/socinfo.h>
+#include <mach/proc_comm.h>
 #include <asm/cacheflush.h>
 
+#ifdef CONFIG_HUAWEI_KERNEL  
+#include <linux/sched.h> 
+#endif
 #include "smd_private.h"
-#include "proc_comm.h"
 #include "modem_notifier.h"
 
 #if defined(CONFIG_ARCH_QSD8X50) || defined(CONFIG_ARCH_MSM8X60) \
@@ -559,7 +562,11 @@ static void notify_other_smsm(uint32_t smsm_entry, uint32_t notify_mask)
 	 * on DEM-based targets.  Grabbing a wakelock in this case will
 	 * abort the power-down sequencing.
 	 */
-	smsm_cb_snapshot(0);
+	if (smsm_info.intr_mask &&
+	    (__raw_readl(SMSM_INTR_MASK_ADDR(smsm_entry, SMSM_APPS))
+				& notify_mask)) {
+		smsm_cb_snapshot(0);
+	}
 }
 
 void smd_diag(void)
@@ -1275,8 +1282,9 @@ static void handle_smd_irq(struct list_head *list, void (*notify)(void))
 					ch->fifo_size - ch->write_avail(ch));
 			ch->notify(ch->priv, SMD_EVENT_DATA);
             #ifdef CONFIG_HUAWEI_RPC_CRASH_DEBUG
+            /* fix a bug related to compile failed */
 			printk(KERN_ERR "%s: ch %s --> recv_stat %d, last_stat %d, ch_flags %d\n",__func__, 
-			                   ch->name, ch->recv->state, ch->last_state, ch_flags);
+			                   ch->name, ch->half_ch->get_fSTATE(ch->recv), ch->last_state, ch_flags);
             #endif
 		}
 		if (ch_flags & 0x4 && !state_change) {
@@ -2128,7 +2136,7 @@ void smd_enable_read_intr(smd_channel_t *ch)
     #else
 	if (ch)
 	{
-		ch->half_ch->set_fBLOCKREADINTR(ch->send, 0);
+		ch->half_ch->set_fBLOCKREADINTR(ch->send, 0); 
 		printk("%s:channel name:%s \n", __func__,ch->name); 
 	}
     #endif
@@ -2656,6 +2664,11 @@ static irqreturn_t smsm_irq_handler(int irq, void *data)
 			modem_queue_start_reset_notify();
 
 		} else if (modm & SMSM_RESET) {
+#ifdef CONFIG_HUAWEI_KERNEL              
+            /* merge rpc debug code to analyse rpc crash */
+			show_state_filter(TASK_UNINTERRUPTIBLE);
+#endif             
+           
 			pr_err("\nSMSM: Modem SMSM state changed to SMSM_RESET.");
 			if (!disable_smsm_reset_handshake) {
 				apps |= SMSM_RESET;

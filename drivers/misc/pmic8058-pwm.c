@@ -238,7 +238,7 @@ static int pm8058_pwm_bank_enable(struct pwm_device *pwm, int enable)
 	struct pm8058_pwm_chip	*chip;
 
 	chip = pwm->chip;
-	
+	/* merge qualcom offer patch ,so keep c8860 keypad led independence */
 	rc = pm8xxx_readb(pwm->dev->parent, SSBI_REG_ADDR_LPG_BANK_EN, &reg); 
 	if (rc) 
 	{ 

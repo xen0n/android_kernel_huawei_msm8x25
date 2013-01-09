@@ -88,10 +88,10 @@ static ssize_t  buf_vkey_size=0;
 atomic_t touch_detected_yet = ATOMIC_INIT(0); 
 #define MSM_7x30_TOUCH_INT       148
 #define MSM_7x30_RESET_PIN         85
-		 
+/*fengwei begin*/		 
 /* updated for regulator interface */
 struct regulator *vreg_gp4 = NULL;
-
+/*fengwei end*/
 #endif
 
 
@@ -180,11 +180,11 @@ struct regulator *vreg_gp4 = NULL;
 /*this is i2c pull-up power configs the i2c 
 *pinname is gp13 and the voltage of the pin is 1800 mv */
 #ifdef CONFIG_HUAWEI_KERNEL
-	
+	/*fengwei begin*/
 	#define VREG_GP13_NAME	"gp13" 
 	#define VREG_GP13_VOLTAGE_VALUE	1800000
 	#define VREG_S3_VOLTAGE_VALUE	1800000
-	
+	/*fengwei end*/
 #endif
 #ifdef CONFIG_HUAWEI_FEATURE_AT42QT_TS
 #define VCC_TS2V8 "gp4"
@@ -1023,7 +1023,7 @@ static struct i2c_board_info msm_amplifier_boardinfo[]  = {
  *the fucntion touch_power used to contrl the tp's power
  */
 #ifdef CONFIG_HUAWEI_KERNEL
- 
+ /*fengwei begin*/
 int power_switch(int pm)
 {
     int rc_gp4 = 0;
@@ -1070,7 +1070,7 @@ int power_switch(int pm)
 err_power_fail:
 	return rc_gp4;
 }
- 
+ /*fengwei end*/
 /*
  *use the touch_gpio_config_interrupt to config the gpio
  *which we used, but the gpio number can't exposure to user

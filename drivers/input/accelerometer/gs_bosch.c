@@ -633,12 +633,12 @@ static int gs_probe(
 	gs->input_dev->id.vendor = GS_BMA250;
 	
 	set_bit(EV_ABS,gs->input_dev->evbit);
-	
+	/* < DTS20111208XXXXX  liujinggang 20111208 begin */
 	/* modify for ES-version*/
 	input_set_abs_params(gs->input_dev, ABS_X, -11520, 11520, 0, 0);
 	input_set_abs_params(gs->input_dev, ABS_Y, -11520, 11520, 0, 0);
 	input_set_abs_params(gs->input_dev, ABS_Z, -11520, 11520, 0, 0);
-	
+	/* DTS20111208XXXXX  liujinggang 20111208 end > */
 	set_bit(EV_SYN,gs->input_dev->evbit);
 
 	gs->input_dev->id.bustype = BUS_I2C;

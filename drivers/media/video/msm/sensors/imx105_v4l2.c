@@ -42,11 +42,10 @@ static struct msm_camera_i2c_reg_conf imx105_sunny_groupoff_settings[] = {
 
 static struct msm_camera_i2c_reg_conf imx105_sunny_prev_settings[] = {
 
-	{0x0305,0x02},     //pre_pll_clk_div[7:0]
+	{0x0305,0x04},     //pre_pll_clk_div[7:0]
 	{0x0307,0x38},     //pll_multiplier[7:0]
 	{0x30A4,0x02},
-	{0x303C,0x4B},
-	
+	{0x303C,0x96},
 #if 0
 	{0x0340,0x04},     //frame_length_lines[15:8]
 	{0x0341,0xF2},     //frame_length_lines[7:0]
@@ -97,10 +96,10 @@ static struct msm_camera_i2c_reg_conf imx105_sunny_prev_settings[] = {
 static struct msm_camera_i2c_reg_conf imx105_sunny_snap_settings[] = { 
 
 	//full frame mode
-	{0x0305,0x02},     //pre_pll_clk_div[7:0]
+	{0x0305,0x04},     //pre_pll_clk_div[7:0]
 	{0x0307,0x38},     //pll_multiplier[7:0]
 	{0x30A4,0x02},
-	{0x303C,0x4B},
+	{0x303C,0x96},
 
 	{0x0340,0x09},     //frame_length_lines[15:8]
 	{0x0341,0xE6},     //frame_length_lines[7:0]
@@ -141,10 +140,10 @@ static struct msm_camera_i2c_reg_conf imx105_sunny_snap_settings[] = {
 };
 
 static struct msm_camera_i2c_reg_conf imx105_sunny_1080p_settings[] = {
-{0x0305,0x02},                                         
+{0x0305,0x04},                                         
 {0x0307,0x3A},                                         
 {0x30A4,0x02},                                         
-{0x303C,0x4B},   
+{0x303C,0x96},   
 
 {0x104, 0x01},
 
@@ -226,8 +225,7 @@ static struct msm_camera_i2c_reg_conf imx105_sunny_recommend_settings[] = {
 	{0x3343,0x04},
 	//Black level Setting
 	{0x3032,0x40},
-
-	{0x0101,0x03},
+	{0x0101,0x00},	//mirror and flip off
 	//test register
 //	{0x3282,0x01},
 //	{0x3032,0x3C},
@@ -262,7 +260,7 @@ static struct msm_sensor_output_info_t imx105_sunny_dimensions[] = {
 	/* snapshot */
     {   //3280 * 2464
 		.x_output = 0X0CD0,
-		.y_output = 0X09A0,
+		.y_output = 0X09AE,//0X09A0,
 		.line_length_pclk = 0X0DD0,
 		.frame_length_lines = 0X09E6,
 		.vt_pixel_clk = 134400000,
@@ -273,7 +271,7 @@ static struct msm_sensor_output_info_t imx105_sunny_dimensions[] = {
 	/* preview */
     {    //1640 * 1232
 		.x_output = 0X668,
-		.y_output = 0X4D0,
+		.y_output = 0X4D6,//0X4D0,
 		.line_length_pclk = 0XDD0,
 //		.frame_length_lines = 0X4F2,
 //		.frame_length_lines = 0X51E,    //29fps
@@ -287,7 +285,7 @@ static struct msm_sensor_output_info_t imx105_sunny_dimensions[] = {
 	/* 1080p 2832*1592 */
     {    //
 		.x_output = 0XB10,  //2832   
-		.y_output = 0X638,  //1592
+		.y_output = 0X63E, //0X638,  //1592
 		.line_length_pclk = 0Xd48,   //3400   
 		.frame_length_lines = 0X65E,  //  1630
 		.vt_pixel_clk = 139200000,
@@ -609,11 +607,11 @@ int32_t imx105_sunny_msm_sensor_i2c_probe(struct i2c_client *client,
 	if (rc < 0)
 		goto probe_fail;
 
-	
+	/*zhanglijun add for otp begin*/
 	ret= imx105_sunny_otp_data_read();
     if(ret < 0)
         printk("imx105_sunny ========= otp read data error!\n");
-
+	/*zhanglijun add for otp end*/
 #if 0
 	if (s_ctrl->sensor_eeprom_client != NULL) {
 		struct msm_camera_eeprom_client *eeprom_client =
@@ -791,8 +789,9 @@ static struct msm_sensor_ctrl_t imx105_sunny_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(imx105_sunny_subdev_info),
 	.sensor_v4l2_subdev_ops = &imx105_sunny_subdev_ops,
 	.func_tbl = &imx105_sunny_func_tbl,
-	.clk_rate = MSM_SENSOR_MCLK_24HZ,
-	.sensor_name = "23060080FA-IMX-S",
+    .clk_rate = MSM_SENSOR_MCLK_48HZ,
+	.sensor_name = "23060093FA-IMX-S",
+
 };
 
 module_init(imx105_sunny_init_module);

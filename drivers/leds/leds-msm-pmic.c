@@ -18,7 +18,9 @@
 #include <linux/leds.h>
 
 #include <mach/pmic.h>
+#include <mach/rpc_pmapp.h>
 
+#include <linux/module.h>
 #ifdef CONFIG_HUAWEI_LEDS_PMIC
 #include <linux/mfd/pmic8058.h>
 #include <mach/gpio.h>
@@ -92,8 +94,12 @@ static void msm_keypad_bl_led_set(struct led_classdev *led_cdev,
     int ret = 0;
 /* 7x27a platform use mpp7 as keypad backlight */
 	#ifdef CONFIG_ARCH_MSM7X27A
-    	ret = pmic_secure_mpp_config_i_sink(PM_MPP_7, PM_MPP__I_SINK__LEVEL_5mA, \
-            	(!!value) ? PM_MPP__I_SINK__SWITCH_ENA : PM_MPP__I_SINK__SWITCH_DIS);
+        /* use pwm to control the brightness of keypad backlight*/
+		/* make sure the led is drived by pwm when */
+        /* the system sleep indicator switch is on */
+        pmapp_button_backlight_init();
+
+        ret = pmapp_button_backlight_set_brightness(value);
 	#else
 	    if(machine_is_msm7x30_u8800() || machine_is_msm7x30_u8800_51() || machine_is_msm8255_u8800_pro() ) 
 	    {
@@ -189,7 +195,8 @@ static int msm_pmic_led_probe(struct platform_device *pdev)
         bl_pwm = pwm_request(LED_PM_GPIO25_PWM_ID, "keypad backlight");
     }
 #endif
-
+    /* use pwm to control the brightness of keypad backlight*/
+    pmapp_button_backlight_init();
 	msm_keypad_bl_led_set(&msm_kp_bl_led, LED_OFF);
 	return rc;
 }
@@ -215,6 +222,7 @@ static int msm_pmic_led_suspend(struct platform_device *dev,
     }
 #endif
 	led_classdev_suspend(&msm_kp_bl_led);
+
 	return 0;
 }
 

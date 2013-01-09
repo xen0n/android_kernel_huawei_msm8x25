@@ -16,7 +16,7 @@
 #include <linux/module.h>
 #include <linux/i2c.h>
 #include <linux/io.h>
-#include <mach/gpio.h>
+#include <linux/gpio.h>
 #include <linux/earlysuspend.h>
 #include <linux/audio_amplifier.h>
 #include <linux/delay.h>
@@ -66,7 +66,7 @@ static char en_data_4voice_u8800[] =
 };
 static char en_data_4voice_u8820[] = 
 {
-    /* 2010.12.31  tuning for U8820 */
+    /* 2010.12.31 renyanhui tuning for U8820 */
     /* reg  val  */
     0x01, 0x83,
     0x02, 0x05,
@@ -137,7 +137,7 @@ static char en_data_4music_u8800[] =
 
 static char en_data_4music_u8820[] = 
 {
-    /* 2010.12.31 tuning for U8820 */
+    /* 2010.12.31 renyanhui tuning for U8820 */
     /* reg  val  */
     0x01, 0x83,
     0x02, 0x05,
@@ -164,7 +164,9 @@ static char en_data_4music_u8800_51[] =
     0x01, 0xc3
 };
 
-
+/* 2011.9.23 renyanhui tuning */
+/* 2011.8.31 renyanhui tuning */
+/* 2011.8.23 renyanhui tuning */
 static char en_data_4music_u8860[] = 
 {
     /* reg  val  */
@@ -178,7 +180,7 @@ static char en_data_4music_u8860[] =
     0x01, 0xc3
 };
 
-/* 2011.9.28  tuning */
+/* 2011.9.28 renyanhui tuning */
 static char en_data_4music_c8860[] = 
 {
     /* reg  val  */

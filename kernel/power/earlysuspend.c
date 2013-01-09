@@ -38,6 +38,9 @@ void set_sampling_rate(int screen_on);
 void set_up_threshold(int screen_on);
 #endif
 
+/* power key detect solution for ANR */
+void del_power_key_timer(void);
+
 static DEFINE_MUTEX(early_suspend_lock);
 static LIST_HEAD(early_suspend_handlers);
 static void early_suspend(struct work_struct *work);
@@ -123,6 +126,10 @@ abort:
 	if (state == SUSPEND_REQUESTED_AND_SUSPENDED)
 		wake_unlock(&main_wake_lock);
 	spin_unlock_irqrestore(&state_lock, irqflags);
+
+	/* power key detect solution for ANR */
+	del_power_key_timer();
+
 }
 
 static void late_resume(struct work_struct *work)
@@ -164,6 +171,10 @@ static void late_resume(struct work_struct *work)
 		pr_info("late_resume: done\n");
 abort:
 	mutex_unlock(&early_suspend_lock);
+
+	/* power key detect solution for ANR */
+	del_power_key_timer();
+
 }
 
 void request_suspend_state(suspend_state_t new_state)

@@ -19,7 +19,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/mfd/marimba.h>
 #include <linux/io.h>
-#include <asm/gpio.h>
+#include <linux/gpio.h>
 #include <asm/mach-types.h>
 #include <mach/rpc_pmapp.h>
 #include <mach/socinfo.h>
@@ -378,13 +378,10 @@ static int config_i2s(int mode)
 	int pin, rc = 0;
 
 	if (mode == FM_I2S_ON) {
+#ifndef CONFIG_HUAWEI_KERNEL
 		if (machine_is_msm7x27a_surf() || machine_is_msm7625a_surf()
-			|| machine_is_msm8625_surf() || machine_is_msm7x27a_U8815()
-			|| machine_is_msm8x25_U8825() || machine_is_msm8x25_C8825D()
-			|| machine_is_msm8x25_U8825D()
-			|| machine_is_msm8x25_C8950D()
-			|| machine_is_msm8x25_U8950()
-			|| machine_is_msm8x25_U8950D())
+				|| machine_is_msm8625_surf())
+#endif
 			config_pcm_i2s_mode(0);
 		pr_err("%s mode = FM_I2S_ON", __func__);
 
@@ -427,13 +424,10 @@ static int config_pcm(int mode)
 	int pin, rc = 0;
 
 	if (mode == BT_PCM_ON) {
+#ifndef CONFIG_HUAWEI_KERNEL
 		if (machine_is_msm7x27a_surf() || machine_is_msm7625a_surf()
-			|| machine_is_msm8625_surf() || machine_is_msm7x27a_U8815()
-			|| machine_is_msm8x25_U8825() || machine_is_msm8x25_C8825D()
-			|| machine_is_msm8x25_U8825D()
-			|| machine_is_msm8x25_C8950D()
-			|| machine_is_msm8x25_U8950()
-			|| machine_is_msm8x25_U8950D())
+				|| machine_is_msm8625_surf())
+#endif
 			config_pcm_i2s_mode(1);
 		pr_err("%s mode =BT_PCM_ON", __func__);
 		rc = switch_pcm_i2s_reg_mode(1);
@@ -1081,7 +1075,7 @@ reg_get_fail:
 
 /*wake signals*/
 #define GPIO_BT_WAKE_BT    107
-#define GPIO_BT_WAKE_MSM   83
+#define GPIO_BT_WAKE_MSM   27 //bt wake msm gpio
 
 /*control signals*/
 #define GPIO_BT_SHUTDOWN_N 5
@@ -1448,7 +1442,7 @@ void bt_wake_msm_config(void)
 {
     /*distinguish the bt_wake_msm gpio by get_hw_bt_wakeup_gpio_type*/
     hw_bt_wakeup_gpio_type bt_wake_msm_gpio =  get_hw_bt_wakeup_gpio_type();
-    if( bt_wake_msm_gpio == HW_BT_WAKEUP_GPIO_IS_27)
+    if( bt_wake_msm_gpio == HW_BT_WAKEUP_GPIO_IS_83)
     {
         bluesleep_resources[0].start = bt_wake_msm_gpio;
         bluesleep_resources[0].end = bt_wake_msm_gpio;

@@ -16,6 +16,12 @@
 #define PLATFORM_DRIVER_NAME "msm_camera_mt9e013"
 #define mt9e013_obj mt9e013_##obj
 
+#include "./msm.h"
+#include "./actuators/msm_actuator.h"
+#define MODEL_LITEON 1
+#define MODEL_SUNNY 2
+static uint16_t mt9e013_model_id = MODEL_LITEON;
+static bool OTP_READ = FALSE;
 DEFINE_MUTEX(mt9e013_mut);
 static struct msm_sensor_ctrl_t mt9e013_s_ctrl;
 
@@ -234,8 +240,7 @@ static struct msm_camera_i2c_reg_conf mt9e013_recommend_settings[] = {
 	{0x3EE6, 0x0540},
 };
 static struct msm_camera_i2c_reg_conf mt9e013_recommend_settings_shading[] = {
-	{0x3780, 0x0000},
-
+	/*delete one line*/
 	{0x3600, 0x0370},
 	{0x3602, 0x102E},
 	{0x3604, 0x30D0},
@@ -342,8 +347,7 @@ static struct msm_camera_i2c_reg_conf mt9e013_recommend_settings_shading[] = {
 	{0x37C2, 0xE20A},
 	{0x37C4, 0xDB8A},
 	{0x37C6, 0x822B},
-	
-	{0x3780, 0x8000},
+	/*delete one line*/
 };
 static struct msm_camera_i2c_reg_conf mt9e013_recommend_settings_pll[] = {
 	/* PLL settings */
@@ -353,6 +357,133 @@ static struct msm_camera_i2c_reg_conf mt9e013_recommend_settings_pll[] = {
 	{0x0306, 0x003A},/*PLL_MULTIPLIER*/
 	{0x0308, 0x000A},/*OP_PIX_CLK_DIV*/
 	{0x030A, 0x0001},/*OP_SYS_CLK_DIV*/
+};
+/*OTP array*/
+static struct msm_camera_i2c_reg_conf mt9e013_OTP_settings[] = {
+	{0x3800, 0x0000},
+	{0x3802, 0x0000},
+	{0x3804, 0x0000},
+	{0x3806, 0x0000},
+	{0x3808, 0x0000},
+	{0x380a, 0x0000},
+	{0x380c, 0x0000},
+	{0x380e, 0x0000},
+	{0x3810, 0x0000},
+	{0x3812, 0x0000},
+	{0x3814, 0x0000},
+	{0x3816, 0x0000},
+	{0x3818, 0x0000},
+	{0x381a, 0x0000},
+	{0x381c, 0x0000},
+	{0x381e, 0x0000},
+	{0x3820, 0x0000},
+	{0x3822, 0x0000},
+	{0x3824, 0x0000},
+	{0x3826, 0x0000},
+	{0x3828, 0x0000},
+	{0x382a, 0x0000},
+	{0x382c, 0x0000},
+	{0x382e, 0x0000},
+	{0x3830, 0x0000},
+	{0x3832, 0x0000},
+	{0x3834, 0x0000},
+	{0x3836, 0x0000},
+	{0x3838, 0x0000},
+	{0x383a, 0x0000},
+	{0x383c, 0x0000},
+	{0x383e, 0x0000},
+	{0x3840, 0x0000},
+	{0x3842, 0x0000},
+	{0x3844, 0x0000},
+	{0x3846, 0x0000},
+	{0x3848, 0x0000},
+	{0x384a, 0x0000},
+	{0x384c, 0x0000},
+	{0x384e, 0x0000},
+	{0x3850, 0x0000},
+	{0x3852, 0x0000},
+	{0x3854, 0x0000},
+	{0x3856, 0x0000},
+	{0x3858, 0x0000},
+	{0x385a, 0x0000},
+	{0x385c, 0x0000},
+	{0x385e, 0x0000},
+	{0x3860, 0x0000},
+	{0x3862, 0x0000},
+	{0x3864, 0x0000},
+	{0x3866, 0x0000},
+	{0x3868, 0x0000},
+	{0x386a, 0x0000},
+	{0x386c, 0x0000},
+	{0x386e, 0x0000},
+	{0x3870, 0x0000},
+	{0x3872, 0x0000},
+	{0x3874, 0x0000},
+	{0x3876, 0x0000},
+	{0x3878, 0x0000},
+	{0x387a, 0x0000},
+	{0x387c, 0x0000},
+	{0x387e, 0x0000},
+	{0x3880, 0x0000},
+	{0x3882, 0x0000},
+	{0x3884, 0x0000},
+	{0x3886, 0x0000},
+	{0x3888, 0x0000},
+	{0x388a, 0x0000},
+	{0x388c, 0x0000},
+	{0x388e, 0x0000},
+	{0x3890, 0x0000},
+	{0x3892, 0x0000},
+	{0x3894, 0x0000},
+	{0x3896, 0x0000},
+	{0x3898, 0x0000},
+	{0x389a, 0x0000},
+	{0x389c, 0x0000},
+	{0x389e, 0x0000},
+	{0x38a0, 0x0000},
+	{0x38a2, 0x0000},
+	{0x38a4, 0x0000},
+	{0x38a6, 0x0000},
+	{0x38a8, 0x0000},
+	{0x38aa, 0x0000},
+	{0x38ac, 0x0000},
+	{0x38ae, 0x0000},
+	{0x38b0, 0x0000},
+	{0x38b2, 0x0000},
+	{0x38b4, 0x0000},
+	{0x38b6, 0x0000},
+	{0x38b8, 0x0000},
+	{0x38ba, 0x0000},
+	{0x38bc, 0x0000},
+	{0x38be, 0x0000},
+	{0x38c0, 0x0000},
+	{0x38c2, 0x0000},
+	{0x38c4, 0x0000},
+	{0x38c6, 0x0000},
+	{0x38c8, 0x0000},
+	{0x38ca, 0x0000},
+	{0x38cc, 0x0000},
+	{0x38ce, 0x0000},
+	{0x38d0, 0x0000},
+	{0x38d2, 0x0000},
+	{0x38d4, 0x0000},
+	{0x38d6, 0x0000},
+	{0x38d8, 0x0000},
+	{0x38da, 0x0000},
+	{0x38dc, 0x0000},
+	{0x38de, 0x0000},
+	{0x38e0, 0x0000},
+	{0x38e2, 0x0000},
+	{0x38e4, 0x0000},
+	{0x38e6, 0x0000},
+	{0x38e8, 0x0000},
+	{0x38ea, 0x0000},
+	{0x38ec, 0x0000},
+	{0x38ee, 0x0000},
+	{0x38f0, 0x0000},
+	{0x38f2, 0x0000},
+	{0x38f4, 0x0000},
+	{0x38f6, 0x0000}
 };
 
 static struct v4l2_subdev_info mt9e013_subdev_info[] = {
@@ -528,6 +659,11 @@ static int32_t mt9e013_write_exp_gain(struct msm_sensor_ctrl_t *s_ctrl,
 		s_ctrl->sensor_exp_gain_info->coarse_int_time_addr, line,
 		MSM_CAMERA_I2C_WORD_DATA);
 	s_ctrl->func_tbl->sensor_group_hold_off(s_ctrl);
+	if(is_first_preview_frame)
+	{
+		msleep(50);
+		is_first_preview_frame = 0;
+	}
 	return 0;
 }
 
@@ -575,6 +711,346 @@ static void mt9e013_stop_stream(struct msm_sensor_ctrl_t *s_ctrl)
 		0x0104, 0x01, MSM_CAMERA_I2C_BYTE_DATA);
 }
 
+static int32_t mt9e013_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
+			int update_type, int res)
+{
+	int32_t rc = 0;
+	static int csi_config;
+
+	struct msm_cam_media_controller *pmctl = NULL;
+	struct msm_actuator_ctrl_t *a_ctrl = NULL;
+	int16_t stored_step_pos=-1;
+	extern uint32_t my_mctl_handle;
+
+	msleep(30);
+	if (update_type == MSM_SENSOR_REG_INIT) {
+		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
+		printk("Register INIT\n");
+		s_ctrl->curr_csi_params = NULL;
+		msm_sensor_enable_debugfs(s_ctrl);
+		if(s_ctrl->func_tbl->sensor_write_init_settings)
+		{
+			s_ctrl->func_tbl->sensor_write_init_settings(s_ctrl);
+		}
+		else
+		{
+			msm_sensor_write_init_settings(s_ctrl);
+		}
+		csi_config = 0;
+		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
+	} else if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
+		printk("PERIODIC : %d\n", res);
+
+		/* here we need to get the actuator ctrl to do something to actuator
+		 * before writing registers of preview or snapshot, move the actuator
+		 * to init position 0, after sensor switched mode successfully, move 
+		 * to original position to get clear image
+		 */
+		pmctl = msm_camera_get_mctl(my_mctl_handle);
+		a_ctrl = get_actrl(pmctl->act_sdev);
+		stored_step_pos= a_ctrl->curr_step_pos;
+		printk("nowt the pos is %d\n", stored_step_pos);
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
+			0x30F2, 0,
+			MSM_CAMERA_I2C_WORD_DATA);
+
+		s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
+		msm_sensor_write_conf_array(
+			s_ctrl->sensor_i2c_client,
+			s_ctrl->msm_sensor_reg->mode_settings, res);
+		msleep(30);
+		if (!csi_config) {
+			s_ctrl->curr_csic_params = s_ctrl->csic_params[res];
+			CDBG("CSI config in progress\n");
+			v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+				NOTIFY_CSIC_CFG,
+				s_ctrl->curr_csic_params);
+			CDBG("CSI config is done\n");
+			mb();
+			msleep(30);
+			csi_config = 1;
+		}
+		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
+			NOTIFY_PCLK_CHANGE,
+			&s_ctrl->sensordata->pdata->ioclk.vfe_clk_rate);
+		
+		msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
+			0x30F2, a_ctrl->step_position_table[stored_step_pos],
+			MSM_CAMERA_I2C_WORD_DATA);
+		
+		s_ctrl->func_tbl->sensor_start_stream(s_ctrl);
+		msleep(50);
+		if(res == MSM_SENSOR_RES_QTR)
+		    is_first_preview_frame = 1;
+	}
+	return rc;
+}
+/*read OTP value function*/
+inline int32_t reading(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int32_t rc = -1;
+	unsigned short i = 0;
+	unsigned short addr = 0x3800;
+	unsigned short value = 0;
+
+	//read the value and put them in the mt9e013_OTP_settings array.
+	for( i=0;i<(ARRAY_SIZE(mt9e013_OTP_settings)-8);i++)
+	{
+		addr = 0x3800 +2 * i;
+		rc = msm_camera_i2c_read(
+					s_ctrl->sensor_i2c_client,
+					addr, &value,
+					MSM_CAMERA_I2C_WORD_DATA);
+		if (rc < 0)
+		{
+			printk("%s: can't read %0x address \n", __func__, addr);
+		}
+		else
+		{
+			mt9e013_OTP_settings[i].reg_data = value;
+		}
+	}
+	return rc;
+}
+
+static int32_t Auto_reading(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int32_t j = 0;
+	int32_t bsuccess = -1;
+	unsigned short value = 0;
+
+	for(j = 0; j<5; j++)//POLL Register 0x304A [6:5] = 11 //auto read success
+		{
+			msleep(5);
+			msm_camera_i2c_read(
+					s_ctrl->sensor_i2c_client,
+					0x304A, &value,
+					MSM_CAMERA_I2C_WORD_DATA);
+		if(0xFFFF == (value |0xFF9F))//finish
+		{
+			bsuccess =1;
+			CDBG("mt9e013_OTP_reading reading bsuccess = %dstart! \n",bsuccess);
+			break;
+		}
+	}
+	if(1 == bsuccess)
+		reading(s_ctrl);
+	
+	return bsuccess;
+}
+
+
+static int32_t mt9e013_OTP_reading (struct msm_sensor_ctrl_t *s_ctrl)
+{	
+	int32_t rc = -1;
+
+	//get the type that we have the params
+	//Do the OTP reading, From Type 35 to 30. read the data from the right type
+	CDBG("mt9e013_OTP_reading reading start! \n");
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x301A, 0x0610, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x3134, 0xCD95, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304C, 0x3500, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304A, 0x0010, MSM_CAMERA_I2C_WORD_DATA);
+	rc = Auto_reading(s_ctrl);
+	if(rc > 0)
+	{
+		CDBG("the right type is 35\n");
+		goto otp_probe_check;
+	}
+
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304C, 0x3400, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304A, 0x0010, MSM_CAMERA_I2C_WORD_DATA);
+	rc = Auto_reading(s_ctrl);
+	if(rc > 0)
+	{
+		CDBG("the right type is 34\n");
+		goto otp_probe_check;
+	}
+
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304C, 0x3300, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304A, 0x0010, MSM_CAMERA_I2C_WORD_DATA);
+	rc = Auto_reading(s_ctrl);
+	if(rc > 0)
+	{
+		CDBG("the right type is 33\n");
+		goto otp_probe_check;
+	}
+
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304C, 0x3200, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304A, 0x0010, MSM_CAMERA_I2C_WORD_DATA);
+	rc = Auto_reading(s_ctrl);
+	if(rc > 0)
+	{
+		CDBG("the right type is 32\n");
+		goto otp_probe_check;
+	}
+
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304C, 0x3100, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304A, 0x0010, MSM_CAMERA_I2C_WORD_DATA);
+	rc = Auto_reading(s_ctrl);
+	if(rc > 0)
+	{
+		CDBG("the right type is 31\n");
+		goto otp_probe_check;
+	}
+
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304C, 0x3000, MSM_CAMERA_I2C_WORD_DATA);
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x304A, 0x0010, MSM_CAMERA_I2C_WORD_DATA);
+	rc = Auto_reading(s_ctrl);
+	if(rc > 0)
+	{
+		CDBG("the right type is 30\n");
+		goto otp_probe_check;
+	}
+
+otp_probe_check:
+	if(rc < 0)
+	{
+		printk("The OTP reading failed\n");
+		return rc;
+	}
+
+	//This is for OTP verify. check the 0x3800's first value is 2
+	//check the AWB data is OK level
+	//check the 0x38e2 is 0xFFFF
+	if(0 != mt9e013_OTP_settings[7].reg_data)
+	{
+		CDBG("The OTP reading failed addr = %0x, data = %0x\n", mt9e013_OTP_settings[7].reg_addr, mt9e013_OTP_settings[7].reg_data);
+		rc = -1;
+		return rc;
+	}
+	//check the 0x38e2 is 0xFFFF
+	if(0xFFFF != mt9e013_OTP_settings[114].reg_data)
+	{
+		CDBG("The OTP reading failed addr = %0x, data = %0x\n", mt9e013_OTP_settings[114].reg_addr, mt9e013_OTP_settings[114].reg_data);
+		rc = -1;
+		return rc;
+	}
+	//if OTP is right, we will set the OTP_READ to TRUE
+	
+	OTP_READ = TRUE;
+	CDBG("The OTP reading success\n");
+	return rc;
+}
+
+int32_t mt9e013_sensor_model_match(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int32_t rc=0;
+
+	/*read and write some otp before model read*/
+	mt9e013_OTP_reading(s_ctrl);
+	rc = msm_camera_i2c_read(
+				s_ctrl->sensor_i2c_client,
+				0x3806, &mt9e013_model_id,
+				MSM_CAMERA_I2C_WORD_DATA);
+	printk("mt9e013 model is :0x%x \n", mt9e013_model_id);
+	mt9e013_model_id = (mt9e013_model_id & 0xF000) >> 12;
+
+	if(MODEL_SUNNY == mt9e013_model_id)
+	{
+		strncpy((char *)s_ctrl->sensor_name, "23060068FA-MT-S", strlen("23060068FA-MT-S"));
+	}
+	else
+	{
+		strncpy((char *)s_ctrl->sensor_name, "23060068FA-MT-L", strlen("23060068FA-MT-L"));
+	}
+	printk("mt9e013.c name is %s \n", s_ctrl->sensor_name);
+	
+	return rc;
+}
+int32_t mt9e013_shading_setting(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int32_t rc = 0;
+	int32_t i=0;
+	CDBG("mt9e013_shading_setting write start!reg_shading_size=%d \n", ARRAY_SIZE(mt9e013_recommend_settings_shading));
+
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x3780, 0,MSM_CAMERA_I2C_WORD_DATA);
+	/*write our default array not OTP*/
+	if((0 == mt9e013_OTP_settings[8].reg_data) || (FALSE == OTP_READ))
+	{
+		CDBG("shading invalid, write the default\n");
+		rc = msm_camera_i2c_write_tbl(
+				s_ctrl->sensor_i2c_client,
+				&mt9e013_recommend_settings_shading[0],
+				ARRAY_SIZE(mt9e013_recommend_settings_shading), 
+				MSM_CAMERA_I2C_WORD_DATA);
+		return rc;
+	}
+	
+	/*write the otp array we read from sensor*/
+	for(i=0;i< ARRAY_SIZE(mt9e013_recommend_settings_shading);i++)
+	{
+		rc = msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
+					mt9e013_recommend_settings_shading[i].reg_addr, mt9e013_OTP_settings[8+i].reg_data,
+					MSM_CAMERA_I2C_WORD_DATA);
+		if(rc < 0)
+		{
+			CDBG("Write shading register failed!address = %0x, wirte again!\n",mt9e013_recommend_settings_shading[i].reg_addr);
+			msm_camera_i2c_write(s_ctrl->sensor_i2c_client,
+					mt9e013_recommend_settings_shading[i].reg_addr, mt9e013_OTP_settings[8+i].reg_data,
+					MSM_CAMERA_I2C_WORD_DATA);
+		}
+		else
+		{
+			CDBG("address = %0x, value = %0x sucess\n",
+				mt9e013_recommend_settings_shading[i].reg_addr, mt9e013_OTP_settings[8+i].reg_data);
+		}
+	}
+	msm_camera_i2c_write(s_ctrl->sensor_i2c_client,0x3780, 0x8000,MSM_CAMERA_I2C_WORD_DATA);
+	CDBG("mt9e013_shading_setting  OTP write success! \n");
+	
+	return rc;
+}
+int32_t mt9e013_write_init_settings(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	int32_t rc=0;
+
+	printk("%s is called !\n", __func__);
+
+	msm_camera_i2c_write_tbl(s_ctrl->sensor_i2c_client,
+		&mt9e013_recommend_settings_mipi[0],
+		ARRAY_SIZE(mt9e013_recommend_settings_mipi),
+		MSM_CAMERA_I2C_WORD_DATA); 
+	msm_camera_i2c_write_tbl(s_ctrl->sensor_i2c_client,
+		&mt9e013_recommend_settings[0],
+		ARRAY_SIZE(mt9e013_recommend_settings),
+		MSM_CAMERA_I2C_WORD_DATA); 
+	mt9e013_shading_setting(s_ctrl);
+	msm_camera_i2c_write_tbl(s_ctrl->sensor_i2c_client,
+		&mt9e013_recommend_settings_pll[0],
+		ARRAY_SIZE(mt9e013_recommend_settings_pll),
+		MSM_CAMERA_I2C_WORD_DATA); 
+
+	return rc;
+}
+int mt9e013_otp_reading(struct sensor_cfg_data *cfg)
+{
+	int32_t rc = 0;
+
+	//Get the AWB cabliate data from OTP, if OTP failed, then return
+	CDBG(" mt9e013_read_awb_data, start \n");
+	if((0==mt9e013_OTP_settings[4].reg_data) || (FALSE == OTP_READ))
+	{
+		CDBG("AWB invalid, no need to get\n");
+		return rc;
+	}	
+
+	if( MODEL_SUNNY == mt9e013_model_id)
+	{
+		cfg->cfg.calib_info.r_over_g = mt9e013_OTP_settings[4].reg_data;
+		cfg->cfg.calib_info.b_over_g = mt9e013_OTP_settings[5].reg_data;
+		cfg->cfg.calib_info.gr_over_gb = mt9e013_OTP_settings[6].reg_data;
+	}
+	else
+	{
+		cfg->cfg.calib_info.r_over_g = mt9e013_OTP_settings[4].reg_data;
+		cfg->cfg.calib_info.gr_over_gb = mt9e013_OTP_settings[5].reg_data;
+		cfg->cfg.calib_info.b_over_g = mt9e013_OTP_settings[6].reg_data;
+	}
+	CDBG(" mt9e013_read_awb_data, end rc = %d \n",rc);
+
+	return rc;
+}
 static const struct i2c_device_id mt9e013_i2c_id[] = {
 	{SENSOR_NAME, (kernel_ulong_t)&mt9e013_s_ctrl},
 	{ }
@@ -622,13 +1098,17 @@ static struct msm_sensor_fn_t mt9e013_func_tbl = {
 	.sensor_set_fps = mt9e013_set_fps,
 	.sensor_write_exp_gain = mt9e013_write_exp_gain,
 	.sensor_write_snapshot_exp_gain = mt9e013_write_exp_snapshot_gain,
-	.sensor_csi_setting = msm_sensor_setting1,
+	.sensor_csi_setting = mt9e013_sensor_setting,
 	.sensor_set_sensor_mode = msm_sensor_set_sensor_mode,
 	.sensor_mode_init = msm_sensor_mode_init,
 	.sensor_get_output_info = msm_sensor_get_output_info,
 	.sensor_config = msm_sensor_config,
 	.sensor_power_up = msm_sensor_power_up,
 	.sensor_power_down = msm_sensor_power_down,
+	.sensor_get_csi_params = msm_sensor_get_csi_params,
+	.sensor_model_match = mt9e013_sensor_model_match,
+	.sensor_write_init_settings = mt9e013_write_init_settings,
+	.sensor_otp_reading = mt9e013_otp_reading,
 };
 
 static struct msm_sensor_reg_t mt9e013_regs = {
@@ -661,7 +1141,7 @@ static struct msm_sensor_ctrl_t mt9e013_s_ctrl = {
 	.sensor_v4l2_subdev_ops = &mt9e013_subdev_ops,
 	.func_tbl = &mt9e013_func_tbl,
 	.clk_rate = MSM_SENSOR_MCLK_24HZ,
-	.sensor_name = "23060068FA-MT-L",
+	.sensor_name = {0},
 };
 
 module_init(msm_sensor_init_module);

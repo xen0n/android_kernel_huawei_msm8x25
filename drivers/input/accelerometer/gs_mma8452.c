@@ -135,8 +135,38 @@ struct gs_data {
 	uint32_t flags;
 	struct early_suspend early_suspend;
 };
-
-
+/* DATA_CTRL_REG: controls the output data rate of the part */
+#define ODR6_25F        0x30   //Period  160ms
+#define ODR12_5F        0x28   //Period   80ms
+#define ODR50F          0x20   //Period   20ms
+#define ODR100F         0x18   //Period   10ms
+#define ODR200F         0x10   //Period    5ms
+#define ODR400F         0x08   //Period  2.5ms
+#define ODR800F         0x00   //Period 1.25ms
+#define ODR_MASK        0xC7
+#define ACTIVE          0x01   //active bit
+/*This is the classcial Delay_time from framework and the units is ms*/
+#define DELAY_FASTEST  10
+#define DELAY_GAME     20
+#define DELAY_UI       68
+#define DELAY_NORMAL  200
+#define DELAY_ERROR 10000
+/*
+ * The following table lists the maximum appropriate poll interval for each
+ * available output data rate.
+ * Make sure the status still have proper timer.
+ */
+ 
+static const struct {
+	unsigned int cutoff;
+	u8 mask;
+} mma_odr_table[] = {
+	{ DELAY_FASTEST, ODR200F},
+	{ DELAY_GAME,    ODR100F},
+	{ DELAY_UI,       ODR50F},
+	{ DELAY_NORMAL, ODR6_25F},
+	{ DELAY_ERROR,  ODR6_25F},
+};
 static struct gs_data  *this_gs_data;
 
 static struct workqueue_struct *gs_wq;
@@ -225,14 +255,35 @@ static int gs_data_to_compass(signed short accel_data [3])
 	accel_data[2]=compass_sensor_data[2];
 	return 0;
 }
-
+static void gs_mma_update_odr(struct gs_data  *gs)
+{
+	int i;
+	int ret = 0;
+	short time_reg;
+	for (i = 0; i < ARRAY_SIZE(mma_odr_table); i++) 
+	{
+		time_reg = mma_odr_table[i].mask;
+		if (accel_delay <= mma_odr_table[i].cutoff)
+		{
+			accel_delay = mma_odr_table[i].cutoff;
+			break;
+		}
+	}
+	printk("Update G-sensor Odr ,delay_time is %d\n",accel_delay);
+	ret  = reg_write(gs, MMA8452_CTRL_REG1, 0x00);
+	time_reg = time_reg | ACTIVE;
+	ret  = reg_write(gs, MMA8452_CTRL_REG1, time_reg);
+	if(ret < 0)
+	{
+		printk("register write failed is gs_mma_update_odr\n ");
+	}
+}
 /**************************************************************************************/
 
 static int gs_mma8452_open(struct inode *inode, struct file *file)
 {	
-    /*gs active mode*/
-	reg_write(this_gs_data, MMA8452_CTRL_REG1, 0x29); /*normal mode 100hz*/
-
+	/*gs active mode, modify the adc frequency to 50HZ*/
+	reg_write(this_gs_data, MMA8452_CTRL_REG1, 0x21);
 	if (this_gs_data->use_irq)
 		enable_irq(this_gs_data->client->irq);
 	else
@@ -294,6 +345,7 @@ gs_mma8452_ioctl(struct file *file, unsigned int cmd,
 				accel_delay = flag;
 			else
 				accel_delay = 10;   /*10ms*/
+			gs_mma_update_odr(this_gs_data);
 			break;
 			
 		case ECS_IOCTL_APP_GET_DELAY:
@@ -444,6 +496,7 @@ static void gs_work_func(struct work_struct *work)
     }
     else
     {
+        printk("MMA8452_CTRL_REG1 is %d \n",reg_read(gs, MMA8452_CTRL_REG1));
         printk(KERN_ERR "%s, line %d: status=0x%x\n", __func__, __LINE__, status);
     }
     if(mma8452_debug_mask)
@@ -642,12 +695,12 @@ static int gs_probe(
 	gs->input_dev->id.vendor = GS_MMA8452;
 	
 	set_bit(EV_ABS,gs->input_dev->evbit);
-
+	/* < DTS20111208XXXXX  liujinggang 20111208 begin */
 	/* modify for ES-version*/
 	input_set_abs_params(gs->input_dev, ABS_X, -11520, 11520, 0, 0);
 	input_set_abs_params(gs->input_dev, ABS_Y, -11520, 11520, 0, 0);
 	input_set_abs_params(gs->input_dev, ABS_Z, -11520, 11520, 0, 0);
-
+	/* DTS20111208XXXXX  liujinggang 20111208 end > */
 	set_bit(EV_SYN,gs->input_dev->evbit);
 
 	gs->input_dev->id.bustype = BUS_I2C;
@@ -788,8 +841,9 @@ static int gs_suspend(struct i2c_client *client, pm_message_t mesg)
 static int gs_resume(struct i2c_client *client)
 {
 	struct gs_data *gs = i2c_get_clientdata(client);
-	
-	reg_write(gs, MMA8452_CTRL_REG1, 0x29);/*normal mode 100hz*/
+
+	/*gs active mode, modify the adc frequency to 50HZ*/
+	reg_write(gs, MMA8452_CTRL_REG1, 0x21);
 	
 	if (!gs->use_irq)
 		hrtimer_start(&gs->timer, ktime_set(1, 0), HRTIMER_MODE_REL);

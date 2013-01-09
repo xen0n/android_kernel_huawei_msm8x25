@@ -18,6 +18,10 @@
 #include <asm/mach-types.h>
 #include <linux/hardware_self_adapt.h> 
 
+#ifdef CONFIG_HUAWEI_HW_DEV_DCT
+#include <linux/hw_dev_dec.h>
+#endif
+
 #define tps61310_strb0	117
 #define FLASH_REFRESHED_TIME 10 /*10s*/
 static struct hrtimer flash_timer;
@@ -85,7 +89,7 @@ static void flash_on(struct work_struct *work)
 int tps61310_set_flash(unsigned led_state)
 {
     int rc = 0;
-
+    hw_camera_flash_number led_num = get_hw_camera_flash_number();
     printk("tps61310_set_flash: led_state = %d\n", led_state);
     /* timer should be cancel,when Led_state possible changed */
     if(timer_is_run)
@@ -97,6 +101,7 @@ int tps61310_set_flash(unsigned led_state)
     switch (led_state)
     {
     case MSM_CAMERA_LED_LOW:
+    case MSM_CAMERA_LED_TORCH:
     case MSM_CAMERA_LED_TORCH_MIDDLE: //use for flashlight
         tps61310_i2c_write( tps61310_client,0x00, 0x0A );
         tps61310_i2c_write( tps61310_client,0x05, 0x6F );
@@ -116,13 +121,20 @@ int tps61310_set_flash(unsigned led_state)
 
         tps61310_i2c_write( tps61310_client, 0x03, 0xE7 );
         tps61310_i2c_write( tps61310_client, 0x05, 0x6F );
-        tps61310_i2c_write( tps61310_client, 0x01, 0x88 );
-        tps61310_i2c_write( tps61310_client, 0x02, 0x88 );
-
+        if(CAMERA_FLASH_LED_DOUBLE == led_num)
+        {
+            tps61310_i2c_write( tps61310_client, 0x01, 0x94 );
+            tps61310_i2c_write( tps61310_client, 0x02, 0x8a );
+        }
+        else
+        {
+            tps61310_i2c_write( tps61310_client, 0x01, 0x88 );
+            tps61310_i2c_write( tps61310_client, 0x02, 0x88 );
+        }
         break;
 
     case MSM_CAMERA_LED_TORCH_HIGH: //use for flashlight
-        tps61310_i2c_write( tps61310_client, 0x00, 0x36 );
+        tps61310_i2c_write( tps61310_client, 0x00, 0x12 );
         tps61310_i2c_write( tps61310_client, 0x05, 0x6F );
         tps61310_i2c_write( tps61310_client, 0x01, 0x40 );
         tps61310_i2c_write( tps61310_client, 0x02, 0x40 );
@@ -134,9 +146,9 @@ int tps61310_set_flash(unsigned led_state)
         hrtimer_start(&flash_timer, ktime_set(FLASH_REFRESHED_TIME, 0), HRTIMER_MODE_REL);
         break;
 
-    case MSM_CAMERA_LED_TORCH:
+
     case MSM_CAMERA_LED_TORCH_LOW: //use for flashlight
-        tps61310_i2c_write( tps61310_client,0x00, 0x01 );
+        tps61310_i2c_write( tps61310_client,0x00, 0x08);
         tps61310_i2c_write( tps61310_client,0x05, 0x6F );
         tps61310_i2c_write( tps61310_client,0x01, 0x40 );
         tps61310_i2c_write( tps61310_client,0x02, 0x40 );
@@ -151,22 +163,29 @@ int tps61310_set_flash(unsigned led_state)
         tps61310_i2c_write( tps61310_client, 0x00, 0x80 );
         gpio_set_value(tps61310_strb0, 0);
         break;
-    case MSM_CAMERA_LED_MMI:
-	    printk("MSM_CAMERA_LED_MMI\n");
-        tps61310_i2c_write( tps61310_client,0x00, 0x08 );/*turn on led and then delay*/
-        tps61310_i2c_write( tps61310_client,0x05, 0x6F );
-        tps61310_i2c_write( tps61310_client,0x01, 0x40 );
-        tps61310_i2c_write( tps61310_client,0x02, 0x40 );
-        usleep(1000*200);
-       
-        tps61310_i2c_write( tps61310_client,0x00, 0x02 );/*switch to the other led*/
-        tps61310_i2c_write( tps61310_client,0x05, 0x6F );
-        tps61310_i2c_write( tps61310_client,0x01, 0x40 );
-        tps61310_i2c_write( tps61310_client,0x02, 0x40 );
-        usleep(1000*200);
-        tps61310_i2c_write( tps61310_client, 0x00, 0x80 );/*turn off*/
-        gpio_set_value(tps61310_strb0, 0);
-        break;
+    case MSM_CAMERA_LED_FIRST_MMI:
+	 printk("MSM_CAMERA_LED_FIRST_MMI\n");
+         tps61310_i2c_write( tps61310_client,0x00, 0x08 );/*turn on led and then delay*/
+         tps61310_i2c_write( tps61310_client,0x05, 0x6F );
+         tps61310_i2c_write( tps61310_client,0x01, 0x40 );
+         tps61310_i2c_write( tps61310_client,0x02, 0x40 );
+         usleep(1000*200);
+         
+         tps61310_i2c_write( tps61310_client, 0x00, 0x80 );/*turn off*/
+         gpio_set_value(tps61310_strb0, 0);
+         break;
+        
+    case MSM_CAMERA_LED_SECOND_MMI:
+       	 printk("MSM_CAMERA_LED_SECOND_MMI\n");
+         tps61310_i2c_write( tps61310_client,0x00, 0x02 );/*switch to the other led*/
+         tps61310_i2c_write( tps61310_client,0x05, 0x6F );
+         tps61310_i2c_write( tps61310_client,0x01, 0x40 );
+         tps61310_i2c_write( tps61310_client,0x02, 0x40 );
+         usleep(1000*200);
+         
+         tps61310_i2c_write( tps61310_client, 0x00, 0x80 );/*turn off*/
+         gpio_set_value(tps61310_strb0, 0);
+         break;
 
     default:
         tps61310_i2c_write( tps61310_client, 0x00, 0x80 );
@@ -249,8 +268,14 @@ static int tps61310_probe(struct i2c_client *client,
 		printk("tps61310 read chip id ok!\n");
 	} else {
 		printk("tps61310 read chip id error!\n");
+		return -ENODEV;
 	}
-	
+
+#ifdef CONFIG_HUAWEI_HW_DEV_DCT
+	/* detect current device successful, set the flag as present */
+	set_hw_dev_flag(DEV_I2C_FLASH);
+#endif
+
 	printk("tps61310_probe end!\n");
 	return 0;
 }

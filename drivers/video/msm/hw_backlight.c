@@ -31,11 +31,11 @@
 #define PM_GPIO26_PWM_ID  2
 #define ADD_VALUE			4
 #define PWM_LEVEL_ADJUST	226
-#define BL_MIN_LEVEL 	    30
+/*modify the min value*/
+#define BL_MIN_LEVEL 13
 
-/*LPG CTL MACRO  range 0 to 100*/
-#define PWM_LEVEL_ADJUST_LPG	100
-#define BL_MIN_LEVEL_LPG 	    10
+
+/* delete 2 lines about PWM_LEVEL_ADJUST_LPG and BL_MIN_LEVEL_LPG */
 /* move semaphore to msm_fb.c */
 static struct msm_fb_data_type *mfd_local;
 static boolean backlight_set = FALSE;
@@ -55,7 +55,7 @@ int backlight_pwm_gpio_config(void)
 		.function       = PM_GPIO_FUNC_2,
 		.inv_int_pol 	= 1,
 	};
-	
+	/* U8800 use PM_GPIO25 as backlight's PWM,but U8820 use PM_GPIO26 */
     if(machine_is_msm7x30_u8800() 
 		|| machine_is_msm7x30_u8800_51() 
 		|| machine_is_msm8255_u8800_pro() 
@@ -100,10 +100,9 @@ void msm_backlight_set(int level)
 #ifdef CONFIG_ARCH_MSM7X27A
 	if(level)
 	{
-		level = ((level * PWM_LEVEL_ADJUST_LPG) / PWM_LEVEL ); 
-		if (level < BL_MIN_LEVEL_LPG)        
+		if (level < BL_MIN_LEVEL)        
 		{    
-			level = BL_MIN_LEVEL_LPG;      
+			level = BL_MIN_LEVEL;      
 		}
 	}
     if (last_level == level)
@@ -118,7 +117,7 @@ void msm_backlight_set(int level)
 	if(TRUE == first_set_bl)
 	{
 		backlight_pwm_gpio_config();
-	
+		/* U8800 use PM_GPIO25 as backlight's PWM,but U8820 use PM_GPIO26 */
 		if(machine_is_msm7x30_u8800() 
 			|| machine_is_msm7x30_u8800_51() 
 			|| machine_is_msm8255_u8800_pro()
@@ -196,7 +195,7 @@ void cabc_backlight_set(struct msm_fb_data_type * mfd)
 
 void pwm_set_backlight(struct msm_fb_data_type *mfd)
 {
-	lcd_panel_type lcd_panel_wvga = LCD_NONE;
+	/*< Delete unused variable */
 	/*When all the device are resume that can turn the light*/
 	if(atomic_read(&suspend_flag)) 
 	{
@@ -204,20 +203,7 @@ void pwm_set_backlight(struct msm_fb_data_type *mfd)
 		backlight_set = TRUE;
 		return;
 	}
-#ifdef CONFIG_ARCH_MSM7X27A
-	
-	
-	lcd_panel_wvga = get_lcd_panel_type();
-	if ((MIPI_RSP61408_CHIMEI_WVGA == lcd_panel_wvga ) 
-		|| (MIPI_RSP61408_BYD_WVGA == lcd_panel_wvga )
-		|| (MIPI_RSP61408_TRULY_WVGA == lcd_panel_wvga )
-		|| (MIPI_HX8369A_TIANMA_WVGA == lcd_panel_wvga ))
-	{
-		/*change the occupancy of PWM to 90% of primary value*/
-		mfd->bl_level = mfd->bl_level * 67/100;
-
-	}
-#endif
+	/*< Delete some lines,control backlight in hardware lights.c by property */
 	if (get_hw_lcd_ctrl_bl_type() == CTRL_BL_BY_MSM)
 	{
 		msm_backlight_set(mfd->bl_level);
@@ -249,6 +235,13 @@ static void pwm_backlight_resume( struct early_suspend *h)
 				down(&mfd_local->sem);
 				pwm_set_backlight(mfd_local);
 				up(&mfd_local->sem);
+				up(&mfd_local->dma->mutex);
+			}
+			/*add mipi video interface*/
+			else if(get_hw_lcd_interface_type() == LCD_IS_MIPI_VIDEO)
+			{
+				down(&mfd_local->dma->mutex);
+				pwm_set_backlight(mfd_local);
 				up(&mfd_local->dma->mutex);
 			}
 			/* MDDI don't use semaphore */

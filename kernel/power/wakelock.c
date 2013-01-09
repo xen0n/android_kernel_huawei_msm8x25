@@ -144,7 +144,7 @@ static int wakelock_stats_show(struct seq_file *m, void *unused)
     for (type = 0; type < WAKE_LOCK_TYPE_COUNT; type++) {
         list_for_each_entry(lock, &active_wake_locks[type], link)
             ret = print_lock_stat(m, lock);
-            ret = seq_printf(m,"!\n!\n!\n");    
+            ret = seq_printf(m,"!\n!\n!\n");    /* for kernel32 -wanghao */
     }
 #else
 	for (type = 0; type < WAKE_LOCK_TYPE_COUNT; type++) {
