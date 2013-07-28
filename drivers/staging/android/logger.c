@@ -914,9 +914,11 @@ static int __init logger_init(void)
 	int ret;
 	/* for logcat control by nv */
 #ifdef CONFIG_HUAWEI_KERNEL
-    u16 nv_item = LOG_CTL_INFO_ITEM;
     struct log_ctl ctl_info;
-    /* int  rval = -1; */
+    /*
+	 * u16 nv_item = LOG_CTL_INFO_ITEM;
+     * int  rval = -1;
+	 */
 
     /* default to disable ddms log*/
     /* default to open ddms log temp */
