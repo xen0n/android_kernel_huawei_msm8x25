@@ -916,14 +916,18 @@ static int __init logger_init(void)
 #ifdef CONFIG_HUAWEI_KERNEL
     u16 nv_item = LOG_CTL_INFO_ITEM;
     struct log_ctl ctl_info;
-    int  rval = -1;
+    /* int  rval = -1; */
 
     /* default to disable ddms log*/
     /* default to open ddms log temp */
-    ctl_info.on_off_flag = USER_LOG_OFF;
+    /* 20130728 xen0n: force ON, we developers NEED that */
+    ctl_info.on_off_flag = USER_LOG_ON;  /* USER_LOG_OFF; */
     printk("%s, %d: driver default on_off_flag == %d\n", __FUNCTION__, __LINE__, ctl_info.on_off_flag);
-    rval = oem_rapi_read_nv(nv_item, (void*)&ctl_info, sizeof(ctl_info));
-    printk("logger open flag: on_off_flag=%d\n", ctl_info.on_off_flag);
+    printk("%s, %d: logging Forced ON by xen0n\n", __FUNCTION__, __LINE__);
+    /*
+     * rval = oem_rapi_read_nv(nv_item, (void*)&ctl_info, sizeof(ctl_info));
+     * printk("logger open flag: on_off_flag=%d\n", ctl_info.on_off_flag);
+     */
     #if 0
     /*if log nv(NV_LOG_CTL_INFO_I) is 0 or inactive , we don't init the logger driver*/
     if((rval != 0) || (ctl_info.on_off_flag != USER_LOG_ON))
